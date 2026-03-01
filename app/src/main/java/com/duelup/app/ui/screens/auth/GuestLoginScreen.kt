@@ -29,12 +29,19 @@ import androidx.navigation.NavController
 import com.duelup.app.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.duelup.app.R
+
 @Composable
 fun GuestLoginScreen(
     navController: NavController,
     viewModel: GuestLoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_splash_logo))
 
     LaunchedEffect(uiState.loginSuccess) {
         if (uiState.loginSuccess) {
@@ -56,6 +63,14 @@ fun GuestLoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            LottieAnimation(
+                composition = composition,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier.size(160.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
                 text = "DuelUp",
                 style = MaterialTheme.typography.displayLarge,

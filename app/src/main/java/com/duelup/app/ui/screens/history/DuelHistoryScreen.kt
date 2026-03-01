@@ -106,18 +106,10 @@ fun DuelHistoryScreen(
                 modifier = Modifier.padding(paddingValues)
             )
             uiState.duels.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No duels yet. Start playing!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                com.duelup.app.ui.components.EmptyStateView(
+                    message = "No duels yet. Start playing!",
+                    modifier = Modifier.padding(paddingValues)
+                )
             }
             else -> {
                 LazyColumn(

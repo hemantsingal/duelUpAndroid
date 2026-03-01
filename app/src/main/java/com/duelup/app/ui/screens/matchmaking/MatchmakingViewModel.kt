@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 sealed class MatchmakingState {
@@ -46,6 +47,14 @@ class MatchmakingViewModel @Inject constructor(
     private var timerJob: Job? = null
     private var countdownJob: Job? = null
 
+    companion object {
+        private const val AI_MATCH_TIMEOUT_SECONDS = 3
+        private val AI_BOT_NAMES = listOf(
+            "QuizBot", "BrainiacAI", "TriviaBot", "SmartBot",
+            "ChallengBot", "QuizMaster", "NeuroBot", "LogicBot"
+        )
+    }
+
     val currentUser: User?
         get() = (authRepository.sessionState.value as? SessionState.Authenticated)?.user
 
@@ -56,17 +65,18 @@ class MatchmakingViewModel @Inject constructor(
     private fun startSearching() {
         viewModelScope.launch {
             _state.value = MatchmakingState.Connecting
-            socketManager.connect()
 
-            // Small delay to ensure connection
-            delay(500)
-
-            if (!socketManager.isConnected()) {
-                _state.value = MatchmakingState.Error("Failed to connect to server")
-                return@launch
+            val connected = try {
+                socketManager.connect()
+                delay(500)
+                socketManager.isConnected()
+            } catch (_: Exception) {
+                false
             }
 
-            socketManager.joinMatchmaking(quizId)
+            if (connected) {
+                socketManager.joinMatchmaking(quizId)
+            }
             _state.value = MatchmakingState.Searching()
 
             // Start wait timer
@@ -79,41 +89,84 @@ class MatchmakingViewModel @Inject constructor(
                     if (current is MatchmakingState.Searching) {
                         _state.value = current.copy(waitTimeSeconds = seconds)
                     }
-                }
-            }
 
-            // Listen for match found
-            launch {
-                socketManager.onMatchmakingFound().collect { payload ->
-                    timerJob?.cancel()
-                    _state.value = MatchmakingState.Found(
-                        duelId = payload.duelId,
-                        opponent = payload.opponent,
-                        quiz = payload.quiz
-                    )
-
-                    // Send ready signal
-                    socketManager.sendReady(payload.duelId)
-
-                    // Countdown to duel start
-                    countdownJob = launch {
-                        for (i in 3 downTo 1) {
-                            val current = _state.value
-                            if (current is MatchmakingState.Found) {
-                                _state.value = current.copy(countdown = i)
-                            }
-                            delay(1000)
-                        }
+                    // After 3 seconds with no match, auto-match with AI bot
+                    if (seconds >= AI_MATCH_TIMEOUT_SECONDS && _state.value is MatchmakingState.Searching) {
+                        matchWithAIBot()
+                        return@launch
                     }
                 }
             }
 
-            // Listen for errors
-            launch {
-                socketManager.onError().collect { error ->
-                    timerJob?.cancel()
-                    _state.value = MatchmakingState.Error(error.message)
+            // Listen for match found (from real opponent before timeout)
+            if (connected) {
+                launch {
+                    socketManager.onMatchmakingFound().collect { payload ->
+                        timerJob?.cancel()
+                        onMatchFound(
+                            duelId = payload.duelId,
+                            opponent = payload.opponent,
+                            quiz = payload.quiz
+                        )
+                        socketManager.sendReady(payload.duelId)
+                    }
                 }
+
+                // Listen for errors
+                launch {
+                    socketManager.onError().collect { error ->
+                        timerJob?.cancel()
+                        _state.value = MatchmakingState.Error(error.message)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun matchWithAIBot() {
+        timerJob?.cancel()
+        val playerRating = currentUser?.rating ?: 1000
+        val botRating = (playerRating - 100..playerRating + 100).random().coerceAtLeast(100)
+        val botName = AI_BOT_NAMES.random()
+        val aiDuelId = "ai-${UUID.randomUUID()}"
+
+        onMatchFound(
+            duelId = aiDuelId,
+            opponent = MatchOpponentInfo(
+                id = "ai-bot",
+                username = botName,
+                rating = botRating,
+                isAI = true
+            ),
+            quiz = MatchQuizInfo(
+                id = quizId,
+                title = "",
+                questionCount = 6,
+                timePerQuestion = 15
+            )
+        )
+    }
+
+    private fun onMatchFound(duelId: String, opponent: MatchOpponentInfo, quiz: MatchQuizInfo) {
+        _state.value = MatchmakingState.Found(
+            duelId = duelId,
+            opponent = opponent,
+            quiz = quiz
+        )
+
+        // Countdown to duel start
+        countdownJob = viewModelScope.launch {
+            for (i in 3 downTo 1) {
+                val current = _state.value
+                if (current is MatchmakingState.Found) {
+                    _state.value = current.copy(countdown = i)
+                }
+                delay(1000)
+            }
+            // Set countdown to 0 to trigger navigation
+            val current = _state.value
+            if (current is MatchmakingState.Found) {
+                _state.value = current.copy(countdown = 0)
             }
         }
     }

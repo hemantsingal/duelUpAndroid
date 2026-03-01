@@ -1,7 +1,7 @@
 package com.duelup.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -21,11 +21,13 @@ data class DuelUpColors(
 
 val LocalDuelUpColors = staticCompositionLocalOf { DuelUpColors() }
 
-private val DarkColorScheme = darkColorScheme(
+// Use LightColorScheme for a vibrant, kid-friendly look
+private val LightColorScheme = lightColorScheme(
     primary = Primary,
     onPrimary = OnPrimary,
     secondary = Secondary,
     onSecondary = OnSecondary,
+    tertiary = Tertiary,
     background = Background,
     onBackground = OnBackground,
     surface = Surface,
@@ -40,7 +42,7 @@ private val DarkColorScheme = darkColorScheme(
 fun DuelUpTheme(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalDuelUpColors provides DuelUpColors()) {
         MaterialTheme(
-            colorScheme = DarkColorScheme,
+            colorScheme = LightColorScheme,
             typography = Typography,
             shapes = Shapes,
             content = content

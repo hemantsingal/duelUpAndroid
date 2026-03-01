@@ -1,6 +1,5 @@
 package com.duelup.app.ui.screens.matchmaking
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,17 +25,36 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.duelup.app.R
 import com.duelup.app.ui.components.RatingBadge
 import com.duelup.app.ui.navigation.Screen
+import com.duelup.app.util.SoundEffect
+import com.duelup.app.util.SoundManager
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+private interface MatchmakingSoundEntryPoint {
+    fun soundManager(): SoundManager
+}
 
 @Composable
 fun MatchmakingScreen(
@@ -45,6 +62,23 @@ fun MatchmakingScreen(
     viewModel: MatchmakingViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val soundManager = remember(context) {
+        EntryPointAccessors.fromApplication(context, MatchmakingSoundEntryPoint::class.java).soundManager()
+    }
+
+    // Play match found sound + countdown sounds
+    LaunchedEffect(state) {
+        val s = state
+        if (s is MatchmakingState.Found) {
+            if (s.countdown == 3) {
+                soundManager.play(SoundEffect.MATCH_FOUND)
+            }
+            if (s.countdown in 1..3) {
+                soundManager.play(SoundEffect.COUNTDOWN)
+            }
+        }
+    }
 
     // Navigate on found + countdown done
     LaunchedEffect(state) {
@@ -77,21 +111,18 @@ fun MatchmakingScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Player card
                 PlayerCard(
                     username = viewModel.currentUser?.username ?: "You",
                     rating = viewModel.currentUser?.rating ?: 1000,
                     isRevealed = true
                 )
 
-                // VS
                 Text(
                     text = "VS",
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.secondary
                 )
 
-                // Opponent card
                 when (val s = state) {
                     is MatchmakingState.Found -> PlayerCard(
                         username = s.opponent.username,
@@ -107,11 +138,18 @@ fun MatchmakingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Status text
+            // Status area
             when (val s = state) {
                 is MatchmakingState.Connecting -> {
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_loading))
+                    LottieAnimation(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier.size(80.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Connecting...",
                         style = MaterialTheme.typography.bodyLarge,
@@ -119,7 +157,12 @@ fun MatchmakingScreen(
                     )
                 }
                 is MatchmakingState.Searching -> {
-                    PulsingDots()
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_matchmaking_search))
+                    LottieAnimation(
+                        composition = composition,
+                        iterations = LottieConstants.IterateForever,
+                        modifier = Modifier.size(120.dp)
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Searching for opponent...",
@@ -134,6 +177,11 @@ fun MatchmakingScreen(
                     )
                 }
                 is MatchmakingState.Found -> {
+                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_matchmaking_found))
+                    LottieAnimation(
+                        composition = composition,
+                        modifier = Modifier.size(120.dp)
+                    )
                     Text(
                         text = "Match Found!",
                         style = MaterialTheme.typography.headlineLarge,
@@ -165,7 +213,6 @@ fun MatchmakingScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Cancel button
             if (state is MatchmakingState.Searching || state is MatchmakingState.Connecting) {
                 OutlinedButton(
                     onClick = { viewModel.cancelSearch() },
@@ -228,31 +275,6 @@ private fun PlayerCard(
         if (isRevealed && rating > 0) {
             Spacer(modifier = Modifier.height(4.dp))
             RatingBadge(rating = rating)
-        }
-    }
-}
-
-@Composable
-private fun PulsingDots() {
-    val transition = rememberInfiniteTransition(label = "dots")
-    Row {
-        repeat(3) { index ->
-            val alpha by transition.animateFloat(
-                initialValue = 0.3f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(600, delayMillis = index * 200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "dot_$index"
-            )
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha))
-            )
         }
     }
 }

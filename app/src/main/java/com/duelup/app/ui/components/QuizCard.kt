@@ -34,11 +34,14 @@ fun QuizCard(
     Card(
         modifier = modifier
             .width(260.dp)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(4.dp), // Space for shadow
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = MaterialTheme.shapes.large
+        shape = MaterialTheme.shapes.extraLarge,
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha=0.3f))
     ) {
         Column {
             // Thumbnail
@@ -49,7 +52,7 @@ fun QuizCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
-                        .clip(MaterialTheme.shapes.large),
+                        .clip(MaterialTheme.shapes.extraLarge),
                     contentScale = ContentScale.Crop
                 )
             } else {

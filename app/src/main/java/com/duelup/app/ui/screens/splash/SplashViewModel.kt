@@ -32,7 +32,7 @@ class SplashViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.initialize()
             // Minimum splash display time
-            delay(1500)
+            delay(2000)
 
             when (authRepository.sessionState.value) {
                 is SessionState.Authenticated -> _navEvent.emit(SplashNavEvent.GoToHome)

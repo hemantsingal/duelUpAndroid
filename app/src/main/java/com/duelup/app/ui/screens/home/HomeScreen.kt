@@ -22,10 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +38,9 @@ import com.duelup.app.ui.components.QuizCard
 import com.duelup.app.ui.components.RatingBadge
 import com.duelup.app.ui.navigation.Screen
 
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -54,93 +53,109 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 80.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 88.dp)
         ) {
-            // Greeting header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Avatar placeholder
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
+            // Colorful Greeting header
+            item {
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.primary, // Vibrant Bubblegum Pink/Red
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                        bottomStart = 32.dp,
+                        bottomEnd = 32.dp
+                    ),
+                    shadowElevation = 8.dp
                 ) {
-                    Text(
-                        text = (uiState.user?.username?.firstOrNull() ?: 'G').uppercase(),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 32.dp), // Extra padding for bubbly feel
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = (uiState.user?.username?.firstOrNull() ?: 'G').uppercase(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Hey, ${uiState.user?.username ?: "Guest"}!",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Text(
+                                text = "Ready for a fun duel?",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+                            )
+                        }
+                        RatingBadge(rating = uiState.user?.rating ?: 1000)
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Hey, ${uiState.user?.username ?: "Guest"}!",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                RatingBadge(rating = uiState.user?.rating ?: 1000)
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Featured Quizzes
             if (uiState.featuredQuizzes.isNotEmpty()) {
-                SectionHeader(title = "Featured Quizzes")
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.featuredQuizzes) { quiz ->
-                        QuizCard(
-                            quiz = quiz,
-                            onClick = {
-                                navController.navigate(Screen.QuizDetail.createRoute(quiz.id))
-                            }
-                        )
+                item { SectionHeader(title = "Featured Quizzes") }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    ) {
+                        items(uiState.featuredQuizzes) { quiz ->
+                            QuizCard(
+                                quiz = quiz,
+                                onClick = {
+                                    navController.navigate(Screen.QuizDetail.createRoute(quiz.id))
+                                }
+                            )
+                        }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Categories
             if (uiState.categories.isNotEmpty()) {
-                SectionHeader(title = "Categories")
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.height((((uiState.categories.size + 1) / 2) * 80).dp)
-                ) {
-                    items(uiState.categories) { category ->
-                        CategoryCard(
-                            category = category,
-                            onClick = {
-                                navController.navigate(Screen.QuizList.createRoute(category.slug))
-                            }
-                        )
+                item { SectionHeader(title = "Categories") }
+                itemsIndexed(uiState.categories.chunked(2)) { _, chunk ->
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp, vertical = 6.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        chunk.forEach { category ->
+                            CategoryCard(
+                                category = category,
+                                onClick = {
+                                    navController.navigate(Screen.QuizList.createRoute(category.slug))
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (chunk.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
+                item { Spacer(modifier = Modifier.height(12.dp)) }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Popular Quizzes
             if (uiState.popularQuizzes.isNotEmpty()) {
-                SectionHeader(title = "Popular Quizzes")
-                uiState.popularQuizzes.forEach { quiz ->
+                item { SectionHeader(title = "Popular Quizzes") }
+                items(uiState.popularQuizzes) { quiz ->
                     QuizCard(
                         quiz = quiz,
                         onClick = {
@@ -148,32 +163,12 @@ fun HomeScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 4.dp)
+                            .padding(horizontal = 20.dp, vertical = 6.dp)
                     )
                 }
             }
         }
 
-        // Quick Play FAB
-        FloatingActionButton(
-            onClick = {
-                // TODO: Pick random quiz and go to matchmaking
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 20.dp),
-            containerColor = MaterialTheme.colorScheme.secondary,
-            contentColor = MaterialTheme.colorScheme.onSecondary
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Quick Play", style = MaterialTheme.typography.labelLarge)
-            }
-        }
     }
 }
 

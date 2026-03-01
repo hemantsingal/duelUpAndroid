@@ -45,6 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.duelup.app.domain.model.LeaderboardEntry
+import com.duelup.app.R
 import com.duelup.app.ui.components.ErrorScreen
 import com.duelup.app.ui.components.FullScreenLoading
 import com.duelup.app.ui.theme.DuelUpThemeExtras
@@ -98,16 +99,9 @@ fun LeaderboardScreen(
                 onRetry = viewModel::loadLeaderboard
             )
             uiState.entries.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No rankings yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                com.duelup.app.ui.components.EmptyStateView(
+                    message = "No rankings yet"
+                )
             }
             else -> {
                 LazyColumn(
@@ -258,12 +252,26 @@ private fun PodiumItem(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Rounded.EmojiEvents,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
+                val badgeRes = when (entry.rank) {
+                    1 -> R.drawable.img_rank_gold
+                    2 -> R.drawable.img_rank_silver
+                    3 -> R.drawable.img_rank_bronze
+                    else -> null
+                }
+                if (badgeRes != null) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(badgeRes),
+                        contentDescription = "Rank ${entry.rank}",
+                        modifier = Modifier.size(32.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.EmojiEvents,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
                 Text(
                     text = "#${entry.rank}",
                     style = MaterialTheme.typography.titleMedium,

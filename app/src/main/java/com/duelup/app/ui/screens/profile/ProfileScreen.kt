@@ -98,11 +98,11 @@ fun ProfileScreen(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Rounded.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(com.duelup.app.R.drawable.img_avatar_default),
+                            contentDescription = "Default avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
                     }
                 }

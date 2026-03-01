@@ -24,11 +24,21 @@ enum class DuelPhase {
     ENDED          // Duel complete
 }
 
+data class QuestionDotState(
+    val index: Int,
+    val playerCorrect: Boolean? = null,   // null = not answered yet
+    val opponentCorrect: Boolean? = null,
+    val playerTimeMs: Int = 0,
+    val opponentTimeMs: Int = 0,
+    val playerPoints: Int = 0,
+    val opponentPoints: Int = 0
+)
+
 data class DuelUiState(
     val duelId: String = "",
     val phase: DuelPhase = DuelPhase.WAITING,
     val currentQuestion: QuestionPayload? = null,
-    val totalQuestions: Int = 10,
+    val totalQuestions: Int = 6,
     val playerScore: Int = 0,
     val opponentScore: Int = 0,
     val timerSeconds: Int = 15,
@@ -40,7 +50,8 @@ data class DuelUiState(
     val pointsEarned: Int = 0,
     val streak: Int = 0,
     val opponentAnswered: Boolean = false,
-    val duelEndPayload: DuelEndPayload? = null
+    val duelEndPayload: DuelEndPayload? = null,
+    val questionDots: List<QuestionDotState> = emptyList()
 )
 
 @HiltViewModel
@@ -61,11 +72,21 @@ class DuelViewModel @Inject constructor(
         listenToEvents()
     }
 
+    private fun initDots(totalQuestions: Int) {
+        if (_uiState.value.questionDots.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                totalQuestions = totalQuestions,
+                questionDots = List(totalQuestions) { QuestionDotState(index = it) }
+            )
+        }
+    }
+
     private fun listenToEvents() {
         // Duel start - first question
         viewModelScope.launch {
             socketManager.onDuelStart().collect { payload ->
                 timeLimitSeconds = payload.question.timeLimit
+                initDots(_uiState.value.totalQuestions)
                 _uiState.value = _uiState.value.copy(
                     phase = DuelPhase.PLAYING,
                     currentQuestion = payload.question,
@@ -116,6 +137,20 @@ class DuelViewModel @Inject constructor(
                     _uiState.value.streak + 1
                 } else 0
 
+                // Update the dot for this question
+                val updatedDots = _uiState.value.questionDots.toMutableList()
+                val qIndex = result.questionIndex
+                if (qIndex in updatedDots.indices) {
+                    updatedDots[qIndex] = updatedDots[qIndex].copy(
+                        playerCorrect = result.player.isCorrect,
+                        opponentCorrect = result.opponent.isCorrect,
+                        playerTimeMs = result.player.timeMs,
+                        opponentTimeMs = result.opponent.timeMs,
+                        playerPoints = result.player.pointsEarned,
+                        opponentPoints = result.opponent.pointsEarned
+                    )
+                }
+
                 _uiState.value = _uiState.value.copy(
                     phase = DuelPhase.REVEALING,
                     questionResult = result,
@@ -123,7 +158,8 @@ class DuelViewModel @Inject constructor(
                     pointsEarned = result.player.pointsEarned,
                     playerScore = result.player.totalScore,
                     opponentScore = result.opponent.totalScore,
-                    streak = currentStreak
+                    streak = currentStreak,
+                    questionDots = updatedDots
                 )
             }
         }

@@ -171,13 +171,8 @@ fun QuizListScreen(
 
                 if (uiState.quizzes.isEmpty() && !uiState.isLoading) {
                     item {
-                        Text(
-                            text = "No quizzes found",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
+                        com.duelup.app.ui.components.EmptyStateView(
+                            message = "No quizzes found"
                         )
                     }
                 }
