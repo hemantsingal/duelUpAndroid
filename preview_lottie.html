@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,26 +18,34 @@
             margin: 0;
             flex-direction: column;
         }
+
         #lottie-container {
             width: 400px;
             height: 400px;
             background-color: white;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             margin-bottom: 20px;
         }
-        h2 { margin-bottom: 5px; }
-        p { color: #aaa; }
+
+        h2 {
+            margin-bottom: 5px;
+        }
+
+        p {
+            color: #aaa;
+        }
     </style>
 </head>
+
 <body>
     <h2>DuelUp Splash Logo</h2>
     <p>Pulsing Animation Preview</p>
-    
+
     <div id="lottie-container"></div>
 
     <script>
-        fetch('app/src/main/res/raw/lottie_splash_logo.json')
+        fetch('app/src/main/res/raw/lottie_loading.json')
             .then(response => response.json())
             .then(data => {
                 lottie.loadAnimation({
@@ -48,9 +57,10 @@
                 });
             })
             .catch(err => {
-                document.getElementById('lottie-container').innerHTML = 
+                document.getElementById('lottie-container').innerHTML =
                     "<p style='color:red; text-align:center; padding-top:40%;'>Error loading JSON: " + err + "<br><br>Make sure you are running this via a local server (e.g. <code>python -m http.server</code>) and not just double-clicking the HTML file.</p>";
             });
     </script>
 </body>
+
 </html>
