@@ -29,4 +29,11 @@ sealed class Screen(val route: String) {
         fun createRoute(duelId: String) = "duel_replay/$duelId"
     }
     data object Leaderboard : Screen("leaderboard")
+    data object Settings : Screen("settings")
+    data object Achievements : Screen("achievements")
+    data object Challenges : Screen("challenges")
+    data object Friends : Screen("friends")
+    data object DirectChallenge : Screen("direct_challenge/{friendId}") {
+        fun createRoute(friendId: String) = "direct_challenge/$friendId"
+    }
 }

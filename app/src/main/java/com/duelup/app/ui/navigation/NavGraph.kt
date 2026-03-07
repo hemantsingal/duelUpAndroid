@@ -25,6 +25,11 @@ import com.duelup.app.ui.screens.quiz.QuizListScreen
 import com.duelup.app.ui.screens.replay.DuelReplayScreen
 import com.duelup.app.ui.screens.result.DuelResultScreen
 import com.duelup.app.ui.screens.splash.SplashScreen
+import com.duelup.app.ui.screens.achievements.AchievementsScreen
+import com.duelup.app.ui.screens.challenge.DirectChallengeScreen
+import com.duelup.app.ui.screens.challenges.ChallengesScreen
+import com.duelup.app.ui.screens.friends.FriendsScreen
+import com.duelup.app.ui.screens.settings.SettingsScreen
 import com.duelup.app.ui.screens.stats.StatsScreen
 
 private const val ANIM_DURATION = 300
@@ -145,6 +150,31 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
 
         composable(Screen.Leaderboard.route) {
             LeaderboardScreen(navController = navController)
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(navController = navController)
+        }
+
+        composable(Screen.Achievements.route) {
+            AchievementsScreen(navController = navController)
+        }
+
+        composable(Screen.Challenges.route) {
+            ChallengesScreen(navController = navController)
+        }
+
+        composable(Screen.Friends.route) {
+            FriendsScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.DirectChallenge.route,
+            arguments = listOf(
+                navArgument("friendId") { type = NavType.StringType }
+            )
+        ) {
+            DirectChallengeScreen(navController = navController)
         }
     }
 }

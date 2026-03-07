@@ -2,6 +2,7 @@ package com.duelup.app.di
 
 import com.duelup.app.data.remote.api.DuelUpApi
 import com.duelup.app.data.remote.interceptor.AuthInterceptor
+import com.duelup.app.data.remote.interceptor.RateLimitInterceptor
 import com.duelup.app.data.remote.interceptor.TokenAuthenticator
 import com.duelup.app.util.Constants
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -34,7 +35,8 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
-        tokenAuthenticator: TokenAuthenticator
+        tokenAuthenticator: TokenAuthenticator,
+        rateLimitInterceptor: RateLimitInterceptor
     ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -42,6 +44,7 @@ object NetworkModule {
 
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .addInterceptor(rateLimitInterceptor)
             .addInterceptor(loggingInterceptor)
             .authenticator(tokenAuthenticator)
             .connectTimeout(30, TimeUnit.SECONDS)

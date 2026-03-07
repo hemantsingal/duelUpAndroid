@@ -23,7 +23,12 @@ class SoundManager @Inject constructor(
         .build()
 
     private val sounds = mutableMapOf<SoundEffect, Int>()
-    private var enabled = true
+    var enabled = true
+        private set
+
+    fun setEnabled(value: Boolean) {
+        enabled = value
+    }
 
     init {
         sounds[SoundEffect.TAP] = soundPool.load(context, R.raw.sfx_tap, 1)

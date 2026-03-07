@@ -11,11 +11,15 @@ import androidx.compose.ui.platform.LocalView
 
 object HapticFeedback {
 
+    var enabled = true
+
     fun lightTap(view: View) {
+        if (!enabled) return
         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
     }
 
     fun success(view: View) {
+        if (!enabled) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
         } else {
@@ -24,6 +28,7 @@ object HapticFeedback {
     }
 
     fun error(view: View) {
+        if (!enabled) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             view.performHapticFeedback(HapticFeedbackConstants.REJECT)
         } else {
@@ -32,6 +37,7 @@ object HapticFeedback {
     }
 
     fun heavy(view: View) {
+        if (!enabled) return
         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 }

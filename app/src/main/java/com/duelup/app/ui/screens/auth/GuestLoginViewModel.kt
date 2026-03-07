@@ -54,6 +54,16 @@ class GuestLoginViewModel @Inject constructor(
         }
     }
 
+    fun socialLogin(provider: String) {
+        // TODO: Integrate Supabase SDK for OAuth flow
+        // 1. Launch Supabase OAuth for the given provider (google/apple)
+        // 2. On success, call api.linkAccount() with the Supabase token
+        // 3. Store session and navigate to Home
+        _uiState.value = _uiState.value.copy(
+            error = "Social login coming soon! Play as guest for now."
+        )
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

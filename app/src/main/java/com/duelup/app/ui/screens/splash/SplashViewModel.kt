@@ -14,6 +14,7 @@ import javax.inject.Inject
 sealed class SplashNavEvent {
     data object GoToHome : SplashNavEvent()
     data object GoToLogin : SplashNavEvent()
+    data class Error(val message: String) : SplashNavEvent()
 }
 
 @HiltViewModel
@@ -28,15 +29,22 @@ class SplashViewModel @Inject constructor(
         checkSession()
     }
 
-    private fun checkSession() {
+    fun checkSession() {
         viewModelScope.launch {
-            authRepository.initialize()
-            // Minimum splash display time
-            delay(2000)
+            try {
+                authRepository.initialize()
+                // Minimum splash display time
+                delay(2000)
 
-            when (authRepository.sessionState.value) {
-                is SessionState.Authenticated -> _navEvent.emit(SplashNavEvent.GoToHome)
-                else -> _navEvent.emit(SplashNavEvent.GoToLogin)
+                when (authRepository.sessionState.value) {
+                    is SessionState.Authenticated -> _navEvent.emit(SplashNavEvent.GoToHome)
+                    else -> _navEvent.emit(SplashNavEvent.GoToLogin)
+                }
+            } catch (e: Exception) {
+                delay(2000)
+                _navEvent.emit(SplashNavEvent.Error(
+                    e.message ?: "Unable to connect to server"
+                ))
             }
         }
     }

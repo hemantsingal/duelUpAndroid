@@ -9,6 +9,13 @@ import com.duelup.app.domain.model.Category
 import com.duelup.app.domain.model.Duel
 import com.duelup.app.domain.model.DuelHistoryResponse
 import com.duelup.app.domain.model.DuelReplay
+import com.duelup.app.domain.model.AchievementsResponse
+import com.duelup.app.domain.model.ChallengesResponse
+import com.duelup.app.domain.model.DirectChallenge
+import com.duelup.app.domain.model.DirectChallengeRequest
+import com.duelup.app.domain.model.Friend
+import com.duelup.app.domain.model.FriendRequest
+import com.duelup.app.domain.model.FriendsResponse
 import com.duelup.app.domain.model.LeaderboardResponse
 import com.duelup.app.domain.model.Quiz
 import com.duelup.app.domain.model.QuizDetail
@@ -90,4 +97,34 @@ interface DuelUpApi {
 
     @GET("leaderboard/weekly")
     suspend fun getWeeklyLeaderboard(@Query("limit") limit: Int = 100): LeaderboardResponse
+
+    // Achievements
+    @GET("users/me/achievements")
+    suspend fun getAchievements(): AchievementsResponse
+
+    // Challenges
+    @GET("challenges")
+    suspend fun getChallenges(): ChallengesResponse
+
+    @POST("challenges/direct")
+    suspend fun createDirectChallenge(@Body body: DirectChallengeRequest): DirectChallenge
+
+    @PATCH("challenges/{id}/accept")
+    suspend fun acceptChallenge(@Path("id") challengeId: String): DirectChallenge
+
+    @DELETE("challenges/{id}/decline")
+    suspend fun declineChallenge(@Path("id") challengeId: String)
+
+    // Friends
+    @GET("friends")
+    suspend fun getFriends(): FriendsResponse
+
+    @POST("friends/{userId}")
+    suspend fun sendFriendRequest(@Path("userId") userId: String): FriendRequest
+
+    @PATCH("friends/{userId}/accept")
+    suspend fun acceptFriendRequest(@Path("userId") userId: String): Friend
+
+    @DELETE("friends/{userId}")
+    suspend fun removeFriend(@Path("userId") userId: String)
 }

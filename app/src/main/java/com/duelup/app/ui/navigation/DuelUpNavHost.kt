@@ -1,5 +1,6 @@
 package com.duelup.app.ui.navigation
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -11,10 +12,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.duelup.app.data.remote.interceptor.NetworkMonitor
+import com.duelup.app.ui.components.OfflineBanner
 
 private val bottomNavRoutes = setOf(
     Screen.Home.route,
@@ -23,7 +27,8 @@ private val bottomNavRoutes = setOf(
 )
 
 @Composable
-fun DuelUpNavHost() {
+fun DuelUpNavHost(networkMonitor: NetworkMonitor) {
+    val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -73,9 +78,12 @@ fun DuelUpNavHost() {
             }
         }
     ) { innerPadding ->
-        NavGraph(
-            navController = navController,
-            modifier = Modifier.padding(innerPadding)
-        )
+        Column(modifier = Modifier.padding(innerPadding)) {
+            OfflineBanner(isOffline = !isOnline)
+            NavGraph(
+                navController = navController,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
