@@ -48,7 +48,6 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.duelup.app.R
 import com.duelup.app.ui.components.OptionButton
 import com.duelup.app.ui.components.OptionState
-import com.duelup.app.ui.components.ScoreBar
 import com.duelup.app.ui.components.StreakIndicator
 import com.duelup.app.ui.components.TimerIndicator
 import com.duelup.app.ui.navigation.Screen
@@ -157,24 +156,17 @@ fun DuelScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                // Header: scores and question counter
+                // Header: scores, names, question counter, dots
                 DuelHeader(
+                    playerName = uiState.playerName,
+                    opponentName = uiState.opponentName,
                     playerScore = animatedPlayerScore,
                     opponentScore = animatedOpponentScore,
                     questionIndex = (uiState.currentQuestion?.index ?: 0) + 1,
                     totalQuestions = uiState.totalQuestions,
-                    maxScore = maxOf(uiState.playerScore, uiState.opponentScore, 100)
+                    dots = uiState.questionDots,
+                    currentDotIndex = uiState.currentQuestion?.index ?: 0
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Progress dots
-                if (uiState.questionDots.isNotEmpty()) {
-                    QuestionProgressDots(
-                        dots = uiState.questionDots,
-                        currentIndex = uiState.currentQuestion?.index ?: 0
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -226,7 +218,8 @@ fun DuelScreen(
                                 selectedAnswer = uiState.selectedAnswer,
                                 correctAnswer = uiState.correctAnswer,
                                 isRevealing = uiState.phase == DuelPhase.REVEALING,
-                                isLocked = uiState.isAnswerLocked
+                                isLocked = uiState.isAnswerLocked,
+                                playerIsCorrect = uiState.questionResult?.player?.isCorrect == true
                             )
 
                             OptionButton(
@@ -287,84 +280,54 @@ fun DuelScreen(
 }
 
 @Composable
-private fun QuestionProgressDots(
-    dots: List<QuestionDotState>,
-    currentIndex: Int
-) {
-    val colors = DuelUpThemeExtras.colors
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        // Player dots row
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("You", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(52.dp))
-            dots.forEach { dot ->
-                val isCurrent = dot.index == currentIndex
-                val bgColor = when (dot.playerCorrect) {
-                    true -> colors.success
-                    false -> MaterialTheme.colorScheme.error
-                    null -> MaterialTheme.colorScheme.surfaceVariant
-                }
-                Box(
-                    modifier = Modifier
-                        .size(if (isCurrent) 14.dp else 12.dp)
-                        .clip(CircleShape)
-                        .background(bgColor)
-                        .then(
-                            if (isCurrent) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            else Modifier
-                        )
-                )
-            }
-        }
-
-        // Opponent dots row
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Opp", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(52.dp))
-            dots.forEach { dot ->
-                val bgColor = when (dot.opponentCorrect) {
-                    true -> colors.success
-                    false -> MaterialTheme.colorScheme.error
-                    null -> MaterialTheme.colorScheme.surfaceVariant
-                }
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(bgColor)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun DuelHeader(
+    playerName: String,
+    opponentName: String,
     playerScore: Int,
     opponentScore: Int,
     questionIndex: Int,
     totalQuestions: Int,
-    maxScore: Int
+    dots: List<QuestionDotState>,
+    currentDotIndex: Int
 ) {
+    val colors = DuelUpThemeExtras.colors
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
+        val borderColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+        // Player column: name, score, dots
         Column(modifier = Modifier.weight(1f)) {
-            Text("You", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(playerName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             Text(playerScore.toString(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-            ScoreBar(score = playerScore, maxScore = maxScore)
+            if (dots.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    dots.forEach { dot ->
+                        val isCurrent = dot.index == currentDotIndex
+                        val bgColor = when (dot.playerCorrect) {
+                            true -> colors.success
+                            false -> MaterialTheme.colorScheme.error
+                            null -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(if (isCurrent) 12.dp else 10.dp)
+                                .clip(CircleShape)
+                                .background(bgColor)
+                                .then(
+                                    if (isCurrent) Modifier.border(2.dp, borderColor, CircleShape)
+                                    else Modifier
+                                )
+                        )
+                    }
+                }
+            }
         }
 
+        // Center: question counter
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -372,10 +335,33 @@ private fun DuelHeader(
             Text("Q $questionIndex/$totalQuestions", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        // Opponent column: name, score, dots
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-            Text("Opponent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(opponentName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             Text(opponentScore.toString(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.secondary)
-            ScoreBar(score = opponentScore, maxScore = maxScore)
+            if (dots.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    dots.forEach { dot ->
+                        val isCurrent = dot.index == currentDotIndex
+                        val bgColor = when (dot.opponentCorrect) {
+                            true -> colors.success
+                            false -> MaterialTheme.colorScheme.error
+                            null -> MaterialTheme.colorScheme.surfaceVariant
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(if (isCurrent) 12.dp else 10.dp)
+                                .clip(CircleShape)
+                                .background(bgColor)
+                                .then(
+                                    if (isCurrent) Modifier.border(2.dp, borderColor, CircleShape)
+                                    else Modifier
+                                )
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -385,12 +371,14 @@ private fun getOptionState(
     selectedAnswer: Int?,
     correctAnswer: Int?,
     isRevealing: Boolean,
-    isLocked: Boolean
+    isLocked: Boolean,
+    playerIsCorrect: Boolean = false
 ): OptionState {
     if (isRevealing && correctAnswer != null) {
         return when {
+            index == selectedAnswer && playerIsCorrect -> OptionState.CORRECT
             index == correctAnswer -> OptionState.CORRECT
-            index == selectedAnswer && selectedAnswer != correctAnswer -> OptionState.WRONG
+            index == selectedAnswer -> OptionState.WRONG
             else -> OptionState.DISABLED
         }
     }

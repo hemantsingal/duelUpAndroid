@@ -64,22 +64,20 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-    val searchPlaceholder = remember {
-        listOf(
-            "Quiz me on...",
-            "Try me on...",
-            "What do you know about...",
-            "Test your brain on...",
-            "Pick a topic...",
-            "Find a quiz...",
-            "I know everything about...",
-            "Dare to duel on...",
-            "Bring it on...",
-            "Search any topic...",
-            "Challenge yourself on...",
-            "Think you know...",
-        ).random()
-    }
+    val searchPlaceholder = listOf(
+        "Quiz me on...",
+        "Try me on...",
+        "What do you know about...",
+        "Test your brain on...",
+        "Pick a topic...",
+        "Find a quiz...",
+        "I know everything about...",
+        "Dare to duel on...",
+        "Bring it on...",
+        "Search any topic...",
+        "Challenge yourself on...",
+        "Think you know...",
+    ).random()
 
     ModalNavigationDrawer(
         drawerState = drawerState,

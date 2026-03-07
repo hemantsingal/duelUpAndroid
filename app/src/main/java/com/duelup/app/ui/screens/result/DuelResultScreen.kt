@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Replay
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -167,10 +166,10 @@ fun DuelResultScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Y", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(uiState.playerName.take(1).uppercase(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("You", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
+                Text(uiState.playerName, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
                 Text(animatedPlayerScore.toString(), style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
             }
 
@@ -184,10 +183,10 @@ fun DuelResultScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("O", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(uiState.opponentName.take(1).uppercase(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.secondary)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Opponent", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
+                Text(uiState.opponentName, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
                 Text(animatedOpponentScore.toString(), style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.secondary)
             }
         }
@@ -202,7 +201,7 @@ fun DuelResultScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("You", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(48.dp))
+                Text(uiState.playerName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(48.dp), maxLines = 1)
                 Spacer(modifier = Modifier.width(8.dp))
                 uiState.questionBreakdowns.forEach { q ->
                     Box(
@@ -223,15 +222,20 @@ fun DuelResultScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Opp", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.width(48.dp))
+                Text(uiState.opponentName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.width(48.dp), maxLines = 1)
                 Spacer(modifier = Modifier.width(8.dp))
                 uiState.questionBreakdowns.forEach { q ->
+                    val dotColor = when (q.opponentCorrect) {
+                        true -> colors.success
+                        false -> MaterialTheme.colorScheme.error
+                        null -> MaterialTheme.colorScheme.surfaceVariant
+                    }
                     Box(
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .size(20.dp)
                             .clip(CircleShape)
-                            .background(if (q.opponentCorrect) colors.success else MaterialTheme.colorScheme.error)
+                            .background(dotColor)
                     )
                 }
             }
@@ -240,32 +244,18 @@ fun DuelResultScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Action buttons
-        Row(
+        Button(
+            onClick = {
+                if (uiState.quizId.isNotEmpty()) {
+                    navController.navigate(Screen.Matchmaking.createRoute(uiState.quizId))
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
         ) {
-            OutlinedButton(
-                onClick = { navController.navigate(Screen.DuelReplay.createRoute(uiState.duelId)) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Rounded.Replay, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Replay")
-            }
-
-            Button(
-                onClick = {
-                    if (uiState.quizId.isNotEmpty()) {
-                        navController.navigate(Screen.Matchmaking.createRoute(uiState.quizId))
-                    }
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) {
-                Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Play Again")
-            }
+            Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Play Again")
         }
 
         Spacer(modifier = Modifier.height(12.dp))

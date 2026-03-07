@@ -16,7 +16,7 @@ import javax.inject.Inject
 data class QuestionBreakdown(
     val index: Int,
     val playerCorrect: Boolean,
-    val opponentCorrect: Boolean,
+    val opponentCorrect: Boolean?, // null = no data (e.g. AI opponent)
     val playerTimeMs: Int,
     val opponentTimeMs: Int,
     val playerPoints: Int,
@@ -28,6 +28,8 @@ data class DuelResultUiState(
     val result: String = "", // "win", "lose", "draw"
     val playerScore: Int = 0,
     val opponentScore: Int = 0,
+    val playerName: String = "You",
+    val opponentName: String = "Opponent",
     val correctAnswers: Int = 0,
     val totalQuestions: Int = 6,
     val avgTimeMs: Int = 0,
@@ -61,13 +63,17 @@ class DuelResultViewModel @Inject constructor(
 
             duelRepository.getDuel(duelId)
                 .onSuccess { duel ->
-                    val isPlayer1 = currentUserId == null || currentUserId == duel.player1.id
+                    val isPlayer1 = currentUserId != null && currentUserId == duel.player1.id
                     val pScore = if (isPlayer1) duel.player1Score else duel.player2Score
                     val oScore = if (isPlayer1) duel.player2Score else duel.player1Score
+                    val pName = if (isPlayer1) duel.player1.username else (duel.player2?.username ?: "Opponent")
+                    val oName = if (isPlayer1) (duel.player2?.username ?: "Opponent") else duel.player1.username
 
                     _uiState.value = _uiState.value.copy(
                         playerScore = pScore,
                         opponentScore = oScore,
+                        playerName = pName,
+                        opponentName = oName,
                         totalQuestions = duel.totalQuestions,
                         quizId = duel.quizId,
                         result = when {
@@ -85,26 +91,34 @@ class DuelResultViewModel @Inject constructor(
             // Load replay data for per-question breakdown
             duelRepository.getDuelReplay(duelId)
                 .onSuccess { replay ->
-                    val isPlayer1 = currentUserId == null || currentUserId == replay.duel.player1.id
+                    val isPlayer1 = currentUserId != null && currentUserId == replay.duel.player1.id
                     val myAnswers = if (isPlayer1) replay.player1Answers else replay.player2Answers
                     val theirAnswers = if (isPlayer1) replay.player2Answers else replay.player1Answers
+                    val totalQ = _uiState.value.totalQuestions.coerceAtLeast(
+                        maxOf(myAnswers.size, theirAnswers.size)
+                    )
 
-                    val breakdowns = myAnswers.mapIndexed { i, playerAnswer ->
-                        val opponentAnswer = theirAnswers.getOrNull(i)
+                    // Index answers by questionIndex for correct matching
+                    val myByIndex = myAnswers.associateBy { it.questionIndex }
+                    val theirByIndex = theirAnswers.associateBy { it.questionIndex }
+
+                    val breakdowns = (0 until totalQ).map { i ->
+                        val playerAnswer = myByIndex[i]
+                        val opponentAnswer = theirByIndex[i]
                         QuestionBreakdown(
                             index = i,
-                            playerCorrect = playerAnswer.isCorrect,
-                            opponentCorrect = opponentAnswer?.isCorrect ?: false,
-                            playerTimeMs = playerAnswer.responseTimeMs,
+                            playerCorrect = playerAnswer?.isCorrect ?: false,
+                            opponentCorrect = opponentAnswer?.isCorrect,
+                            playerTimeMs = playerAnswer?.responseTimeMs ?: 0,
                             opponentTimeMs = opponentAnswer?.responseTimeMs ?: 0,
-                            playerPoints = playerAnswer.pointsEarned,
+                            playerPoints = playerAnswer?.pointsEarned ?: 0,
                             opponentPoints = opponentAnswer?.pointsEarned ?: 0
                         )
                     }
                     _uiState.value = _uiState.value.copy(
                         questionBreakdowns = breakdowns,
                         correctAnswers = breakdowns.count { it.playerCorrect },
-                        totalQuestions = breakdowns.size.coerceAtLeast(_uiState.value.totalQuestions)
+                        totalQuestions = totalQ
                     )
                 }
         }

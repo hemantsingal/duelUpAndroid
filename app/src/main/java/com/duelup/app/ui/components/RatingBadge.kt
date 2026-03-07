@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.duelup.app.ui.theme.DuelUpThemeExtras
 
@@ -24,11 +25,12 @@ fun RatingBadge(
     modifier: Modifier = Modifier
 ) {
     val gold = DuelUpThemeExtras.colors.gold
+    val darkGold = Color(0xFFB8960A)
 
     Row(
         modifier = modifier
             .clip(MaterialTheme.shapes.small)
-            .background(gold.copy(alpha = 0.15f))
+            .background(gold.copy(alpha = 0.2f))
             .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -42,7 +44,7 @@ fun RatingBadge(
         Text(
             text = rating.toString(),
             style = MaterialTheme.typography.labelLarge,
-            color = gold
+            color = darkGold
         )
     }
 }

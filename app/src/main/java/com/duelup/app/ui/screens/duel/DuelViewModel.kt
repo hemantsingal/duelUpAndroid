@@ -3,10 +3,13 @@ package com.duelup.app.ui.screens.duel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.duelup.app.data.local.SessionManager
+import com.duelup.app.data.local.SessionState
 import com.duelup.app.data.remote.socket.DuelEndPayload
 import com.duelup.app.data.remote.socket.QuestionPayload
 import com.duelup.app.data.remote.socket.QuestionResultPayload
 import com.duelup.app.data.remote.socket.SocketManager
+import com.duelup.app.data.repository.DuelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -39,6 +42,8 @@ data class DuelUiState(
     val phase: DuelPhase = DuelPhase.WAITING,
     val currentQuestion: QuestionPayload? = null,
     val totalQuestions: Int = 6,
+    val playerName: String = "You",
+    val opponentName: String = "Opponent",
     val playerScore: Int = 0,
     val opponentScore: Int = 0,
     val timerSeconds: Int = 15,
@@ -57,6 +62,8 @@ data class DuelUiState(
 @HiltViewModel
 class DuelViewModel @Inject constructor(
     private val socketManager: SocketManager,
+    private val duelRepository: DuelRepository,
+    private val sessionManager: SessionManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -69,8 +76,22 @@ class DuelViewModel @Inject constructor(
     private var timeLimitSeconds = 15
 
     init {
+        loadPlayerNames()
         listenToEvents()
         socketManager.sendReady(duelId)
+    }
+
+    private fun loadPlayerNames() {
+        viewModelScope.launch {
+            val currentUserId = (sessionManager.sessionState.value as? SessionState.Authenticated)?.user?.id
+            duelRepository.getDuel(duelId).onSuccess { duel ->
+                val isPlayer1 = currentUserId != null && currentUserId == duel.player1.id
+                _uiState.value = _uiState.value.copy(
+                    playerName = if (isPlayer1) duel.player1.username else (duel.player2?.username ?: "You"),
+                    opponentName = if (isPlayer1) (duel.player2?.username ?: "Opponent") else duel.player1.username
+                )
+            }
+        }
     }
 
     private fun initDots(totalQuestions: Int) {
@@ -105,6 +126,7 @@ class DuelViewModel @Inject constructor(
         // Next question
         viewModelScope.launch {
             socketManager.onNextQuestion().collect { payload ->
+                return@collect // DEBUG: freeze on Q1
                 timeLimitSeconds = payload.question.timeLimit
                 initDots(_uiState.value.totalQuestions)
                 // Keep answers locked briefly to prevent accidental taps from previous question
@@ -153,9 +175,12 @@ class DuelViewModel @Inject constructor(
                 val updatedDots = _uiState.value.questionDots.toMutableList()
                 val qIndex = result.questionIndex
                 if (qIndex in updatedDots.indices) {
+                    // If player didn't answer (timeout), keep dot grey (null) instead of red
+                    val didPlayerAnswer = _uiState.value.selectedAnswer != null
+                    val didOpponentAnswer = result.opponent.answer >= 0
                     updatedDots[qIndex] = updatedDots[qIndex].copy(
-                        playerCorrect = result.player.isCorrect,
-                        opponentCorrect = result.opponent.isCorrect,
+                        playerCorrect = if (didPlayerAnswer) result.player.isCorrect else null,
+                        opponentCorrect = if (didOpponentAnswer) result.opponent.isCorrect else null,
                         playerTimeMs = result.player.timeMs,
                         opponentTimeMs = result.opponent.timeMs,
                         playerPoints = result.player.pointsEarned,
@@ -179,6 +204,7 @@ class DuelViewModel @Inject constructor(
         // Duel end
         viewModelScope.launch {
             socketManager.onDuelEnd().collect { payload ->
+                return@collect // DEBUG: freeze on Q1
                 timerJob?.cancel()
                 _uiState.value = _uiState.value.copy(
                     phase = DuelPhase.ENDED,
@@ -236,6 +262,7 @@ class DuelViewModel @Inject constructor(
             )
 
             if (_uiState.value.selectedAnswer == null) {
+                return@launch // DEBUG: freeze on Q1
                 socketManager.sendAnswerTimeout(
                     duelId = duelId,
                     questionIndex = _uiState.value.currentQuestion?.index ?: 0
