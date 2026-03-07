@@ -18,8 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
@@ -39,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,7 +46,6 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.duelup.app.R
-import com.duelup.app.ui.components.ScoreBar
 import com.duelup.app.ui.navigation.Screen
 import com.duelup.app.ui.theme.DuelUpThemeExtras
 import com.duelup.app.util.SoundEffect
@@ -196,76 +192,48 @@ fun DuelResultScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Score bars
-        Row(modifier = Modifier.fillMaxWidth()) {
-            ScoreBar(score = uiState.playerScore, maxScore = maxOf(uiState.playerScore, uiState.opponentScore, 1), modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.width(8.dp))
-            ScoreBar(score = uiState.opponentScore, maxScore = maxOf(uiState.playerScore, uiState.opponentScore, 1), modifier = Modifier.weight(1f))
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Stats summary
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatRow("Correct", "${uiState.correctAnswers}/${uiState.totalQuestions}")
-            if (uiState.totalQuestions > 0) {
-                StatRow("Accuracy", "${(uiState.correctAnswers * 100 / uiState.totalQuestions)}%")
-            }
-            if (uiState.avgTimeMs > 0) {
-                StatRow("Avg Time", String.format("%.1fs", uiState.avgTimeMs / 1000.0))
-            }
-            if (uiState.ratingChange != 0) {
-                StatRow(
-                    label = "Rating",
-                    value = if (uiState.ratingChange > 0) "+${uiState.ratingChange}" else "${uiState.ratingChange}",
-                    valueColor = if (uiState.ratingChange > 0) colors.success else MaterialTheme.colorScheme.error
-                )
-            }
-            if (uiState.xpEarned > 0) {
-                StatRow("XP Earned", "+${uiState.xpEarned}", colors.gold)
-            }
-            if (uiState.coinsEarned > 0) {
-                StatRow("Coins", "+${uiState.coinsEarned}", colors.gold)
-            }
-        }
-
-        // Per-question breakdown
+        // Per-question dots
         if (uiState.questionBreakdowns.isNotEmpty()) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Question Breakdown",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            )
-
-            // Header row
+            // Player dots
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Q#", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(28.dp), textAlign = TextAlign.Center)
-                Text("You", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Text("Opp", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Text("You", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                uiState.questionBreakdowns.forEach { q ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(if (q.playerCorrect) colors.success else MaterialTheme.colorScheme.error)
+                    )
+                }
             }
 
-            uiState.questionBreakdowns.forEach { q ->
-                QuestionBreakdownRow(q)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Opponent dots
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Opp", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.width(48.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                uiState.questionBreakdowns.forEach { q ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(if (q.opponentCorrect) colors.success else MaterialTheme.colorScheme.error)
+                    )
+                }
             }
         }
 
@@ -319,101 +287,3 @@ fun DuelResultScreen(
     }
 }
 
-@Composable
-private fun QuestionBreakdownRow(q: QuestionBreakdown) {
-    val colors = DuelUpThemeExtras.colors
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Question number
-        Text(
-            text = "${q.index + 1}",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(28.dp),
-            textAlign = TextAlign.Center
-        )
-
-        // Player result
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (q.playerCorrect) Icons.Rounded.Check else Icons.Rounded.Close,
-                contentDescription = null,
-                tint = if (q.playerCorrect) colors.success else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = String.format("%.1fs", q.playerTimeMs / 1000.0),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (q.playerPoints > 0) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "+${q.playerPoints}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.success,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        // Opponent result
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (q.opponentCorrect) Icons.Rounded.Check else Icons.Rounded.Close,
-                contentDescription = null,
-                tint = if (q.opponentCorrect) colors.success else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = String.format("%.1fs", q.opponentTimeMs / 1000.0),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (q.opponentPoints > 0) {
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "+${q.opponentPoints}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.success,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatRow(
-    label: String,
-    value: String,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = MaterialTheme.typography.titleMedium, color = valueColor)
-    }
-}

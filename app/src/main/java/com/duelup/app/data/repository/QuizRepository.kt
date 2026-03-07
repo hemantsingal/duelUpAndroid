@@ -37,6 +37,15 @@ class QuizRepository @Inject constructor(
         }
     }
 
+    suspend fun getRandomQuizzes(count: Int = 6): Result<List<Quiz>> {
+        return try {
+            val response = api.getQuizzes(random = count)
+            Result.success(response.quizzes)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getQuizzes(
         category: String? = null,
         difficulty: String? = null,

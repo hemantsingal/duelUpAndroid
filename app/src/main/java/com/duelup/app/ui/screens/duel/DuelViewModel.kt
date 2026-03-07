@@ -70,6 +70,7 @@ class DuelViewModel @Inject constructor(
 
     init {
         listenToEvents()
+        socketManager.sendReady(duelId)
     }
 
     private fun initDots(totalQuestions: Int) {

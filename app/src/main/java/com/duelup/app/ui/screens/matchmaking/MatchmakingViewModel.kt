@@ -65,9 +65,10 @@ class MatchmakingViewModel @Inject constructor(
                 false
             }
 
-            if (connected) {
-                socketManager.joinMatchmaking(quizId)
-            }
+            // TODO: re-enable after fixing duel flow
+            // if (connected) {
+            //     socketManager.joinMatchmaking(quizId)
+            // }
             _state.value = MatchmakingState.Searching()
 
             // Start wait timer
@@ -93,7 +94,6 @@ class MatchmakingViewModel @Inject constructor(
                             opponent = payload.opponent,
                             quiz = payload.quiz
                         )
-                        socketManager.sendReady(payload.duelId)
                     }
                 }
 

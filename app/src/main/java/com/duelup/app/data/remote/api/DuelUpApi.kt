@@ -70,6 +70,7 @@ interface DuelUpApi {
         @Query("difficulty") difficulty: String? = null,
         @Query("search") search: String? = null,
         @Query("featured") featured: Boolean? = null,
+        @Query("random") random: Int? = null,
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 20
     ): QuizListResponse

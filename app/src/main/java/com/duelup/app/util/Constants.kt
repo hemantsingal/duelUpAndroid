@@ -1,8 +1,18 @@
 package com.duelup.app.util
 
+import android.os.Build
+
 object Constants {
-    const val BASE_URL = "http://10.0.2.2:3000/api/v1/"
-    const val SOCKET_URL = "http://10.0.2.2:3000"
+    // Emulator uses 10.0.2.2 to reach host machine
+    // Physical device uses localhost via `adb reverse tcp:3000 tcp:3000`
+    private val IS_EMULATOR = Build.FINGERPRINT.contains("generic")
+            || Build.PRODUCT.contains("sdk")
+            || Build.HARDWARE.contains("ranchu")
+
+    private val HOST = if (IS_EMULATOR) "10.0.2.2" else "localhost"
+
+    val BASE_URL = "http://$HOST:3000/api/v1/"
+    val SOCKET_URL = "http://$HOST:3000"
     const val SOCKET_NAMESPACE = "/duels"
 
     const val DATASTORE_NAME = "duelup_prefs"

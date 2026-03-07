@@ -1,6 +1,8 @@
 package com.duelup.app.ui.screens.home
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.provider.Settings
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.duelup.app.data.local.SearchHistoryManager
 import com.duelup.app.data.local.SessionState
@@ -24,9 +26,7 @@ import javax.inject.Inject
 data class HomeUiState(
     val user: User? = null,
     val isLoggedIn: Boolean = false,
-    val featuredQuizzes: List<Quiz> = emptyList(),
     val categories: List<Category> = emptyList(),
-    val popularQuizzes: List<Quiz> = emptyList(),
     val randomQuizzes: List<Quiz> = emptyList(),
     val searchQuery: String = "",
     val searchResults: List<Quiz> = emptyList(),
@@ -43,8 +43,9 @@ data class HomeUiState(
 class HomeViewModel @Inject constructor(
     private val quizRepository: QuizRepository,
     private val authRepository: AuthRepository,
-    private val searchHistoryManager: SearchHistoryManager
-) : ViewModel() {
+    private val searchHistoryManager: SearchHistoryManager,
+    application: Application
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -52,20 +53,30 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
 
     init {
-        initializeAuth()
+        initializeAndLoad()
         observeSession()
-        loadHomeData()
         observeSearch()
         observeRecentSearches()
     }
 
-    private fun initializeAuth() {
+    private fun initializeAndLoad() {
         viewModelScope.launch {
+            // 1. Try restoring existing session
             try {
                 authRepository.initialize()
-            } catch (_: Exception) {
-                // Auth init failed silently - user can log in from drawer
+            } catch (_: Exception) { }
+
+            // 2. If not authenticated, auto guest login
+            if (authRepository.sessionState.value !is SessionState.Authenticated) {
+                val deviceId = Settings.Secure.getString(
+                    getApplication<Application>().contentResolver,
+                    Settings.Secure.ANDROID_ID
+                )
+                authRepository.guestLogin(deviceId)
             }
+
+            // 3. Now load data
+            loadHomeData()
         }
     }
 
@@ -84,28 +95,18 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val featuredDeferred = async { quizRepository.getFeaturedQuizzes() }
+            val randomDeferred = async { quizRepository.getRandomQuizzes(6) }
             val categoriesDeferred = async { quizRepository.getCategories() }
-            val popularDeferred = async { quizRepository.getPopularQuizzes() }
 
-            val featured = featuredDeferred.await()
+            val random = randomDeferred.await()
             val categories = categoriesDeferred.await()
-            val popular = popularDeferred.await()
-
-            // Pick 5 random quizzes from popular + featured combined
-            val allQuizzes = (popular.getOrDefault(emptyList()) + featured.getOrDefault(emptyList()))
-                .distinctBy { it.id }
-                .shuffled()
-                .take(5)
 
             _uiState.value = _uiState.value.copy(
-                featuredQuizzes = featured.getOrDefault(emptyList()),
+                randomQuizzes = random.getOrDefault(emptyList()),
                 categories = categories.getOrDefault(emptyList()),
-                popularQuizzes = popular.getOrDefault(emptyList()),
-                randomQuizzes = allQuizzes,
                 isLoading = false,
                 isRefreshing = false,
-                error = if (featured.isFailure && categories.isFailure && popular.isFailure) {
+                error = if (random.isFailure && categories.isFailure) {
                     "Failed to load data. Pull to refresh."
                 } else null
             )
@@ -181,9 +182,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun getRandomQuizId(): String? {
-        val quizzes = _uiState.value.popularQuizzes.ifEmpty {
-            _uiState.value.featuredQuizzes
-        }
-        return quizzes.randomOrNull()?.id
+        return _uiState.value.randomQuizzes.randomOrNull()?.id
     }
 }

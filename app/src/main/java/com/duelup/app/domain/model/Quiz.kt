@@ -21,6 +21,7 @@ data class QuizDetail(
     val id: String,
     val title: String,
     val description: String? = null,
+    val tagline: String? = null,
     val thumbnailUrl: String? = null,
     val difficulty: String,
     val questionCount: Int,

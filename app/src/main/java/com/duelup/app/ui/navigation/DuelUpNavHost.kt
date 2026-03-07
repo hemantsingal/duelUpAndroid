@@ -1,9 +1,9 @@
 package com.duelup.app.ui.navigation
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -17,11 +17,10 @@ fun DuelUpNavHost(networkMonitor: NetworkMonitor) {
     val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle()
     val navController = rememberNavController()
 
-    Surface(
-        color = MaterialTheme.colorScheme.background,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
             OfflineBanner(isOffline = !isOnline)
             NavGraph(
                 navController = navController,

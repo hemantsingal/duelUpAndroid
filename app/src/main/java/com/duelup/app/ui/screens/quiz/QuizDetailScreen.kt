@@ -12,12 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.QuestionAnswer
-import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,20 +28,36 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.duelup.app.ui.components.DifficultyBadge
 import com.duelup.app.ui.components.ErrorScreen
 import com.duelup.app.ui.components.FullScreenLoading
 import com.duelup.app.ui.navigation.Screen
-import com.duelup.app.util.formatCompact
+
+private val heroGradients = listOf(
+    listOf(Color(0xFFFF6B6B), Color(0xFFFF8E53)),
+    listOf(Color(0xFF4ECDC4), Color(0xFF44B09E)),
+    listOf(Color(0xFFFFBE0B), Color(0xFFFB5607)),
+    listOf(Color(0xFF7B68EE), Color(0xFF6C5CE7)),
+    listOf(Color(0xFFFF6392), Color(0xFFE84393)),
+    listOf(Color(0xFF00B4D8), Color(0xFF0077B6)),
+    listOf(Color(0xFF06D6A0), Color(0xFF1B9AAA)),
+    listOf(Color(0xFFFF9F1C), Color(0xFFE76F51)),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,126 +92,95 @@ fun QuizDetailScreen(
             )
             uiState.quiz != null -> {
                 val quiz = uiState.quiz!!
+                val gradient = remember(quiz.id) {
+                    heroGradients[quiz.id.hashCode().mod(heroGradients.size).let { if (it < 0) it + heroGradients.size else it }]
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Hero image
+                    // Hero image / gradient
                     if (quiz.thumbnailUrl != null) {
                         AsyncImage(
                             model = quiz.thumbnailUrl,
                             contentDescription = quiz.title,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
+                                .height(220.dp)
                                 .padding(horizontal = 20.dp)
-                                .clip(MaterialTheme.shapes.large),
+                                .clip(RoundedCornerShape(24.dp)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
+                                .height(220.dp)
                                 .padding(horizontal = 20.dp)
-                                .clip(MaterialTheme.shapes.large)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(Brush.linearGradient(gradient)),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = quiz.title.take(2).uppercase(),
-                                style = MaterialTheme.typography.displayLarge,
-                                color = MaterialTheme.colorScheme.primary
+                                text = quiz.title,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                textAlign = TextAlign.Center,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    // Title
+                    // Tagline (replaces title)
                     Text(
-                        text = quiz.title,
-                        style = MaterialTheme.typography.headlineLarge,
+                        text = quiz.tagline ?: quiz.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
 
-                    // Description
-                    quiz.description?.let {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 20.dp)
-                        )
+                    // Difficulty + Category row
+                    val difficultyColor = when (quiz.difficulty.lowercase()) {
+                        "easy" -> Color(0xFF06D6A0)
+                        "medium" -> Color(0xFFFFBE0B)
+                        "hard" -> Color(0xFFFF6B6B)
+                        else -> MaterialTheme.colorScheme.primary
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Stats row
+                    Spacer(modifier = Modifier.height(12.dp))
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        DifficultyBadge(difficulty = quiz.difficulty)
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.QuestionAnswer,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.height(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${quiz.questionCount} questions",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Timer,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.height(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${quiz.timePerQuestion}s/question",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "${quiz.playCount.formatCompact()} plays",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp)
-                    )
-
-                    // Category chip
-                    quiz.category?.let {
-                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = it.name,
+                            text = quiz.difficulty.replaceFirstChar { it.uppercase() },
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            color = difficultyColor,
                             modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .clip(MaterialTheme.shapes.small)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(difficultyColor.copy(alpha = 0.12f))
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
                         )
+                        quiz.category?.let {
+                            Text(
+                                text = it.name,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -213,13 +197,14 @@ fun QuizDetailScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary
                         ),
-                        shape = MaterialTheme.shapes.medium
+                        shape = RoundedCornerShape(16.dp)
                     ) {
                         Icon(Icons.Rounded.PlayArrow, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Find Opponent",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 

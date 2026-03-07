@@ -84,9 +84,10 @@ fun MatchmakingScreen(
     LaunchedEffect(state) {
         val s = state
         if (s is MatchmakingState.Found && s.countdown <= 0) {
-            navController.navigate(Screen.Duel.createRoute(s.duelId)) {
-                popUpTo(Screen.Matchmaking.route) { inclusive = true }
-            }
+            // TODO: re-enable after fixing duel flow
+            // navController.navigate(Screen.Duel.createRoute(s.duelId)) {
+            //     popUpTo(Screen.Matchmaking.route) { inclusive = true }
+            // }
         }
         if (s is MatchmakingState.Cancelled) {
             navController.popBackStack()
@@ -141,21 +142,7 @@ fun MatchmakingScreen(
 
             // Status area
             when (val s = state) {
-                is MatchmakingState.Connecting -> {
-                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_loading))
-                    LottieAnimation(
-                        composition = composition,
-                        iterations = LottieConstants.IterateForever,
-                        modifier = Modifier.size(80.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Connecting...",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                is MatchmakingState.Searching -> {
+                is MatchmakingState.Connecting, is MatchmakingState.Searching -> {
                     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_matchmaking_search))
                     LottieAnimation(
                         composition = composition,
@@ -170,7 +157,7 @@ fun MatchmakingScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${s.waitTimeSeconds}s",
+                        text = "${if (s is MatchmakingState.Searching) s.waitTimeSeconds else 0}s",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
