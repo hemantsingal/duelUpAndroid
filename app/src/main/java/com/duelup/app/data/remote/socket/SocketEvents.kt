@@ -1,5 +1,6 @@
 package com.duelup.app.data.remote.socket
 
+import com.duelup.app.domain.model.DEFAULT_TIME_PER_QUESTION
 import kotlinx.serialization.Serializable
 
 // --- Client -> Server Event Names ---
@@ -92,7 +93,7 @@ data class QuestionPayload(
     val index: Int,
     val text: String,
     val options: List<String>,
-    val timeLimit: Int,
+    val timeLimit: Int = DEFAULT_TIME_PER_QUESTION,
     val imageUrl: String? = null
 )
 

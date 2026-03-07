@@ -50,20 +50,20 @@ fun TimerIndicator(
 
     Box(
         modifier = modifier
-            .size(64.dp)
             .scale(pulseScale),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
             progress = { progress },
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.matchParentSize(),
             color = timerColor,
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
             strokeWidth = 4.dp
         )
         Text(
             text = seconds.toString(),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             color = timerColor
         )
     }

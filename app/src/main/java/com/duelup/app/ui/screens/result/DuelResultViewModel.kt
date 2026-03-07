@@ -94,9 +94,7 @@ class DuelResultViewModel @Inject constructor(
                     val isPlayer1 = currentUserId != null && currentUserId == replay.duel.player1.id
                     val myAnswers = if (isPlayer1) replay.player1Answers else replay.player2Answers
                     val theirAnswers = if (isPlayer1) replay.player2Answers else replay.player1Answers
-                    val totalQ = _uiState.value.totalQuestions.coerceAtLeast(
-                        maxOf(myAnswers.size, theirAnswers.size)
-                    )
+                    val totalQ = maxOf(myAnswers.size, theirAnswers.size)
 
                     // Index answers by questionIndex for correct matching
                     val myByIndex = myAnswers.associateBy { it.questionIndex }

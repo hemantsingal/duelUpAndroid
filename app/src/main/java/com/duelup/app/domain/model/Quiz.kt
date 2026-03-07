@@ -2,6 +2,8 @@ package com.duelup.app.domain.model
 
 import kotlinx.serialization.Serializable
 
+const val DEFAULT_TIME_PER_QUESTION = 10
+
 @Serializable
 data class Quiz(
     val id: String,
@@ -10,10 +12,11 @@ data class Quiz(
     val thumbnailUrl: String? = null,
     val difficulty: String,
     val questionCount: Int,
-    val timePerQuestion: Int,
+    val timePerQuestion: Int = DEFAULT_TIME_PER_QUESTION,
     val playCount: Int,
     val category: Category? = null,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val tagline: String? = null
 )
 
 @Serializable
@@ -25,7 +28,7 @@ data class QuizDetail(
     val thumbnailUrl: String? = null,
     val difficulty: String,
     val questionCount: Int,
-    val timePerQuestion: Int,
+    val timePerQuestion: Int = DEFAULT_TIME_PER_QUESTION,
     val playCount: Int,
     val category: Category? = null,
     val tags: List<String> = emptyList(),

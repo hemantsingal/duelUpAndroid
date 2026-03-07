@@ -36,7 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,7 +50,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.duelup.app.R
 import com.duelup.app.ui.components.OptionButton
 import com.duelup.app.ui.components.OptionState
-import com.duelup.app.ui.components.StreakIndicator
+
 import com.duelup.app.ui.components.TimerIndicator
 import com.duelup.app.ui.navigation.Screen
 import com.duelup.app.ui.theme.DuelUpThemeExtras
@@ -99,7 +101,6 @@ fun DuelScreen(
                 val isCorrect = uiState.questionResult?.player?.isCorrect == true
                 if (isCorrect) {
                     soundManager.play(SoundEffect.CORRECT)
-                    if (uiState.streak >= 3) soundManager.play(SoundEffect.STREAK)
                 } else {
                     soundManager.play(SoundEffect.WRONG)
                 }
@@ -154,9 +155,9 @@ fun DuelScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                // Header: scores, names, question counter, dots
+                // Header: player | timer | opponent
                 DuelHeader(
                     playerName = uiState.playerName,
                     opponentName = uiState.opponentName,
@@ -164,27 +165,13 @@ fun DuelScreen(
                     opponentScore = animatedOpponentScore,
                     questionIndex = (uiState.currentQuestion?.index ?: 0) + 1,
                     totalQuestions = uiState.totalQuestions,
+                    timerSeconds = uiState.timerSeconds,
+                    timerProgress = uiState.timerProgress,
                     dots = uiState.questionDots,
                     currentDotIndex = uiState.currentQuestion?.index ?: 0
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Timer
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    TimerIndicator(
-                        seconds = uiState.timerSeconds,
-                        progress = uiState.timerProgress
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Streak indicator
-                StreakIndicator(streak = uiState.streak)
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Question area with animated transitions
                 AnimatedContent(
@@ -200,13 +187,24 @@ fun DuelScreen(
                             .weight(1f)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // Quiz title
+                        if (uiState.quizTitle.isNotEmpty()) {
+                            Text(
+                                text = uiState.quizTitle,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
 
                         Text(
                             text = question?.text ?: "",
                             style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
-                            textAlign = TextAlign.Center,
+                            textAlign = TextAlign.Start,
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -266,16 +264,6 @@ fun DuelScreen(
             }
         }
 
-        // Streak fire overlay
-        if (uiState.streak >= 3 && uiState.phase == DuelPhase.REVEALING) {
-            val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_streak_fire))
-            LottieAnimation(
-                composition = composition,
-                modifier = Modifier
-                    .size(150.dp)
-                    .align(Alignment.TopCenter)
-            )
-        }
     }
 }
 
@@ -287,24 +275,36 @@ private fun DuelHeader(
     opponentScore: Int,
     questionIndex: Int,
     totalQuestions: Int,
+    timerSeconds: Int,
+    timerProgress: Float,
     dots: List<QuestionDotState>,
     currentDotIndex: Int
 ) {
     val colors = DuelUpThemeExtras.colors
+    val borderColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        val borderColor = MaterialTheme.colorScheme.onSurfaceVariant
-
         // Player column: name, score, dots
         Column(modifier = Modifier.weight(1f)) {
-            Text(playerName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-            Text(playerScore.toString(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+            Text(
+                playerName,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                playerScore.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
             if (dots.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     dots.forEach { dot ->
                         val isCurrent = dot.index == currentDotIndex
                         val bgColor = when (dot.playerCorrect) {
@@ -314,11 +314,11 @@ private fun DuelHeader(
                         }
                         Box(
                             modifier = Modifier
-                                .size(if (isCurrent) 12.dp else 10.dp)
+                                .size(if (isCurrent) 10.dp else 8.dp)
                                 .clip(CircleShape)
                                 .background(bgColor)
                                 .then(
-                                    if (isCurrent) Modifier.border(2.dp, borderColor, CircleShape)
+                                    if (isCurrent) Modifier.border(1.5.dp, borderColor, CircleShape)
                                     else Modifier
                                 )
                         )
@@ -327,21 +327,42 @@ private fun DuelHeader(
             }
         }
 
-        // Center: question counter
+        // Center: timer with question counter
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = 8.dp)
         ) {
-            Text("Q $questionIndex/$totalQuestions", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "$questionIndex of $totalQuestions",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            TimerIndicator(
+                seconds = timerSeconds,
+                progress = timerProgress,
+                modifier = Modifier.size(56.dp)
+            )
         }
 
         // Opponent column: name, score, dots
         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-            Text(opponentName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-            Text(opponentScore.toString(), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.secondary)
+            Text(
+                opponentName,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                opponentScore.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
             if (dots.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     dots.forEach { dot ->
                         val isCurrent = dot.index == currentDotIndex
                         val bgColor = when (dot.opponentCorrect) {
@@ -351,11 +372,11 @@ private fun DuelHeader(
                         }
                         Box(
                             modifier = Modifier
-                                .size(if (isCurrent) 12.dp else 10.dp)
+                                .size(if (isCurrent) 10.dp else 8.dp)
                                 .clip(CircleShape)
                                 .background(bgColor)
                                 .then(
-                                    if (isCurrent) Modifier.border(2.dp, borderColor, CircleShape)
+                                    if (isCurrent) Modifier.border(1.5.dp, borderColor, CircleShape)
                                     else Modifier
                                 )
                         )
