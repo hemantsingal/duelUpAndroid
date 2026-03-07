@@ -1,6 +1,7 @@
 package com.duelup.app.ui.screens.home
 
 import app.cash.turbine.test
+import com.duelup.app.data.local.SearchHistoryManager
 import com.duelup.app.data.local.SessionState
 import com.duelup.app.data.repository.AuthRepository
 import com.duelup.app.data.repository.QuizRepository
@@ -31,6 +32,7 @@ class HomeViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var quizRepository: QuizRepository
     private lateinit var authRepository: AuthRepository
+    private lateinit var searchHistoryManager: SearchHistoryManager
     private val sessionStateFlow = MutableStateFlow<SessionState>(SessionState.Loading)
 
     private val testUser = User(
@@ -68,7 +70,9 @@ class HomeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         quizRepository = mockk()
         authRepository = mockk()
+        searchHistoryManager = mockk()
         every { authRepository.sessionState } returns sessionStateFlow
+        every { searchHistoryManager.recentSearches } returns MutableStateFlow(emptyList())
     }
 
     @After
@@ -77,7 +81,7 @@ class HomeViewModelTest {
     }
 
     private fun createViewModel(): HomeViewModel {
-        return HomeViewModel(quizRepository, authRepository)
+        return HomeViewModel(quizRepository, authRepository, searchHistoryManager)
     }
 
     @Test

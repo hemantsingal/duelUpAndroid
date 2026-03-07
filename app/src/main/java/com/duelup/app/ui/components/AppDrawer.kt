@@ -20,7 +20,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Leaderboard
 import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.automirrored.rounded.Login
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -45,6 +48,7 @@ import com.duelup.app.domain.model.User
 @Composable
 fun AppDrawer(
     user: User?,
+    isLoggedIn: Boolean,
     categories: List<Category>,
     onCategoryClick: (String) -> Unit,
     onNavigate: (String) -> Unit,
@@ -59,58 +63,88 @@ fun AppDrawer(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // User header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
+            // User header or Login prompt
+            if (isLoggedIn && user != null) {
+                Row(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (user?.avatarUrl != null) {
-                        AsyncImage(
-                            model = user.avatarUrl,
-                            contentDescription = "Avatar",
-                            modifier = Modifier.size(56.dp).clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (user.avatarUrl != null) {
+                            AsyncImage(
+                                model = user.avatarUrl,
+                                contentDescription = "Avatar",
+                                modifier = Modifier.size(56.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = (user.username.firstOrNull() ?: 'G').uppercase(),
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = (user?.username?.firstOrNull() ?: 'G').uppercase(),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            text = user.displayName ?: user.username,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Rating: ${user.rating}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = user?.displayName ?: user?.username ?: "Guest",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Rating: ${user?.rating ?: 1000}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "DuelUp",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Login / Profile
+            if (isLoggedIn) {
+                DrawerNavItem(
+                    icon = Icons.Rounded.Person,
+                    label = "Profile",
+                    onClick = { onNavigate("profile") }
+                )
+            } else {
+                DrawerNavItem(
+                    icon = Icons.AutoMirrored.Rounded.Login,
+                    label = "Log in / Sign up",
+                    onClick = { onNavigate("guest_login") }
+                )
+            }
 
             // Categories
             if (categories.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "Categories",
                     style = MaterialTheme.typography.titleSmall,
@@ -131,13 +165,18 @@ fun AppDrawer(
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Quick links
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Navigation items
+            DrawerNavItem(
+                icon = Icons.Rounded.Leaderboard,
+                label = "Leaderboard",
+                onClick = { onNavigate("leaderboard") }
+            )
             DrawerNavItem(
                 icon = Icons.Rounded.LocalFireDepartment,
                 label = "Challenges",

@@ -17,16 +17,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -36,22 +35,22 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.duelup.app.ui.components.AppDrawer
-import com.duelup.app.ui.components.CategoryCard
-import com.duelup.app.ui.components.QuizCard
 import com.duelup.app.ui.components.QuizListItem
-import com.duelup.app.ui.components.RatingBadge
 import com.duelup.app.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
@@ -63,12 +62,14 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             AppDrawer(
                 user = uiState.user,
+                isLoggedIn = uiState.isLoggedIn,
                 categories = uiState.categories,
                 onCategoryClick = { slug ->
                     scope.launch { drawerState.close() }
@@ -81,83 +82,46 @@ fun HomeScreen(
             )
         }
     ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 88.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // Colorful Greeting header
-            item {
-                androidx.compose.material3.Surface(
-                    color = MaterialTheme.colorScheme.primary, // Vibrant Bubblegum Pink/Red
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                        bottomStart = 32.dp,
-                        bottomEnd = 32.dp
-                    ),
-                    shadowElevation = 8.dp
-                ) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp)
+            ) {
+                // Top bar: menu + app name
+                item {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 32.dp),
+                            .padding(start = 4.dp, end = 16.dp, top = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } }
-                        ) {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(
                                 imageVector = Icons.Rounded.Menu,
                                 contentDescription = "Menu",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surface),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = (uiState.user?.username?.firstOrNull() ?: 'G').uppercase(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Hey, ${uiState.user?.username ?: "Guest"}!",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Text(
-                                text = "Ready for a fun duel?",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
-                            )
-                        }
-                        RatingBadge(rating = uiState.user?.rating ?: 1000)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "DuelUp",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
-            }
 
-            // Search bar + Quick Play
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                ) {
+                // Search box
+                item {
                     OutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = viewModel::onSearchQueryChanged,
-                        placeholder = { Text("Find a quiz...") },
+                        placeholder = { Text("I want to play...") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.Search,
@@ -177,6 +141,15 @@ fun HomeScreen(
                             }
                         },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                if (uiState.searchQuery.isNotBlank()) {
+                                    viewModel.onSearchSubmitted(uiState.searchQuery)
+                                }
+                                keyboardController?.hide()
+                            }
+                        ),
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -184,62 +157,107 @@ fun HomeScreen(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
                             unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                            viewModel.getRandomQuizId()?.let { quizId ->
-                                navController.navigate(Screen.Matchmaking.createRoute(quizId))
+                // Recent searches
+                if (!uiState.isSearchActive && uiState.recentSearches.isNotEmpty()) {
+                    item {
+                        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Recent Searches",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                TextButton(onClick = { viewModel.clearRecentSearches() }) {
+                                    Text("Clear")
+                                }
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Casino,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Quick Play")
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(uiState.recentSearches) { search ->
+                                    AssistChip(
+                                        onClick = { viewModel.onSearchQueryChanged(search) },
+                                        label = { Text(search) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Rounded.History,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            // Search results (when searching)
-            if (uiState.isSearchActive) {
-                if (uiState.isSearching) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    if (uiState.searchResults.isEmpty()) {
+                // Search results
+                if (uiState.isSearchActive) {
+                    if (uiState.isSearching) {
                         item {
-                            Text(
-                                text = "No quizzes found",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     } else {
-                        item { SectionHeader(title = "Search Results") }
-                        items(uiState.searchResults) { quiz ->
+                        if (uiState.searchResults.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No quizzes found",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                                )
+                            }
+                        } else {
+                            items(uiState.searchResults) { quiz ->
+                                QuizListItem(
+                                    quiz = quiz,
+                                    onClick = {
+                                        navController.navigate(Screen.QuizDetail.createRoute(quiz.id))
+                                    },
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Random quizzes (when not searching)
+                if (!uiState.isSearchActive) {
+                    if (uiState.isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    } else if (uiState.randomQuizzes.isNotEmpty()) {
+                        items(uiState.randomQuizzes) { quiz ->
                             QuizListItem(
                                 quiz = quiz,
                                 onClick = {
@@ -251,87 +269,6 @@ fun HomeScreen(
                     }
                 }
             }
-
-            // Browse content (when not searching)
-            if (!uiState.isSearchActive) {
-
-            // Featured Quizzes
-            if (uiState.featuredQuizzes.isNotEmpty()) {
-                item { SectionHeader(title = "Featured Quizzes") }
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(bottom = 24.dp)
-                    ) {
-                        items(uiState.featuredQuizzes) { quiz ->
-                            QuizCard(
-                                quiz = quiz,
-                                onClick = {
-                                    navController.navigate(Screen.QuizDetail.createRoute(quiz.id))
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Categories
-            if (uiState.categories.isNotEmpty()) {
-                item { SectionHeader(title = "Categories") }
-                itemsIndexed(uiState.categories.chunked(2)) { _, chunk ->
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 20.dp, vertical = 6.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        chunk.forEach { category ->
-                            CategoryCard(
-                                category = category,
-                                onClick = {
-                                    navController.navigate(Screen.QuizList.createRoute(category.slug))
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        if (chunk.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-                item { Spacer(modifier = Modifier.height(12.dp)) }
-            }
-
-            // Popular Quizzes
-            if (uiState.popularQuizzes.isNotEmpty()) {
-                item { SectionHeader(title = "Popular This Week") }
-                items(uiState.popularQuizzes) { quiz ->
-                    QuizCard(
-                        quiz = quiz,
-                        onClick = {
-                            navController.navigate(Screen.QuizDetail.createRoute(quiz.id))
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            } // end if (!uiState.isSearchActive)
         }
-
     }
-    } // ModalNavigationDrawer
-}
-
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-    )
 }

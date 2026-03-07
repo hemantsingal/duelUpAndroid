@@ -105,6 +105,7 @@ class DuelViewModel @Inject constructor(
         viewModelScope.launch {
             socketManager.onNextQuestion().collect { payload ->
                 timeLimitSeconds = payload.question.timeLimit
+                initDots(_uiState.value.totalQuestions)
                 _uiState.value = _uiState.value.copy(
                     phase = DuelPhase.PLAYING,
                     currentQuestion = payload.question,
@@ -130,7 +131,6 @@ class DuelViewModel @Inject constructor(
                 }
                 _uiState.value = _uiState.value.copy(
                     opponentAnswered = payload.hasAnswered,
-                    opponentScore = payload.totalScore,
                     questionDots = updatedDots
                 )
             }
@@ -194,6 +194,8 @@ class DuelViewModel @Inject constructor(
     fun selectAnswer(answerIndex: Int) {
         val state = _uiState.value
         if (state.isAnswerLocked || state.phase != DuelPhase.PLAYING) return
+
+        timerJob?.cancel()
 
         _uiState.value = state.copy(
             selectedAnswer = answerIndex,

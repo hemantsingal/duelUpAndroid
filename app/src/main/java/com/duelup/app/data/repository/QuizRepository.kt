@@ -58,4 +58,17 @@ class QuizRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun searchQuizzes(
+        query: String,
+        limit: Int = 15,
+        category: String? = null,
+        difficulty: String? = null
+    ): Result<List<Quiz>> {
+        return try {
+            Result.success(api.searchQuizzes(query, limit, category, difficulty))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

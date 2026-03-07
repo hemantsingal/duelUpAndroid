@@ -124,6 +124,43 @@ class QuizRepositoryTest {
     }
 
     @Test
+    fun `searchQuizzes success returns quiz list`() = runTest {
+        coEvery { api.searchQuizzes("science", 15, null, null) } returns listOf(testQuiz)
+
+        val result = quizRepository.searchQuizzes("science")
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.size)
+        assertEquals("Science Quiz", result.getOrNull()?.first()?.title)
+    }
+
+    @Test
+    fun `searchQuizzes failure returns error`() = runTest {
+        coEvery { api.searchQuizzes(any(), any(), any(), any()) } throws Exception("Network")
+
+        val result = quizRepository.searchQuizzes("test")
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `searchQuizzes passes category and difficulty filters`() = runTest {
+        coEvery {
+            api.searchQuizzes("physics", 10, "science", "HARD")
+        } returns listOf(testQuiz)
+
+        val result = quizRepository.searchQuizzes(
+            query = "physics",
+            limit = 10,
+            category = "science",
+            difficulty = "HARD"
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.size)
+    }
+
+    @Test
     fun `getQuizDetail success returns detail`() = runTest {
         val testDetail = QuizDetail(
             id = "q1",

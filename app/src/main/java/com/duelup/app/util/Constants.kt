@@ -11,7 +11,8 @@ object Constants {
     const val KEY_USER_JSON = "user_json"
 
     const val DEFAULT_PAGE_SIZE = 20
-    const val SEARCH_DEBOUNCE_MS = 300L
+    const val SEARCH_DEBOUNCE_SHORT_MS = 400L  // 1-2 chars: wait longer
+    const val SEARCH_DEBOUNCE_LONG_MS = 250L   // 3+ chars: respond faster
     const val MATCHMAKING_TIMEOUT_MS = 30_000L
     const val RECONNECT_GRACE_PERIOD_MS = 15_000L
     const val QUESTION_RESULT_DELAY_MS = 3_000L

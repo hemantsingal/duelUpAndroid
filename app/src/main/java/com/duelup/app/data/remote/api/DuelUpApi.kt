@@ -80,6 +80,14 @@ interface DuelUpApi {
     @GET("quizzes/popular")
     suspend fun getPopularQuizzes(@Query("limit") limit: Int = 10): List<Quiz>
 
+    @GET("quizzes/search")
+    suspend fun searchQuizzes(
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 15,
+        @Query("category") category: String? = null,
+        @Query("difficulty") difficulty: String? = null
+    ): List<Quiz>
+
     @GET("quizzes/{id}")
     suspend fun getQuizDetail(@Path("id") quizId: String): QuizDetail
 

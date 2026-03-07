@@ -12,7 +12,8 @@ data class Quiz(
     val questionCount: Int,
     val timePerQuestion: Int,
     val playCount: Int,
-    val category: Category? = null
+    val category: Category? = null,
+    val tags: List<String> = emptyList()
 )
 
 @Serializable
@@ -26,6 +27,7 @@ data class QuizDetail(
     val timePerQuestion: Int,
     val playCount: Int,
     val category: Category? = null,
+    val tags: List<String> = emptyList(),
     val isFeatured: Boolean = false,
     val createdAt: String = ""
 )

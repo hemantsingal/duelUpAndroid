@@ -38,7 +38,7 @@ private const val ANIM_DURATION = 300
 fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Splash.route,
+        startDestination = Screen.Home.route,
         modifier = modifier,
         enterTransition = {
             slideIntoContainer(

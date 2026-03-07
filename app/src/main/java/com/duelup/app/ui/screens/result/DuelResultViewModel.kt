@@ -3,6 +3,8 @@ package com.duelup.app.ui.screens.result
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.duelup.app.data.local.SessionManager
+import com.duelup.app.data.local.SessionState
 import com.duelup.app.data.repository.DuelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +42,7 @@ data class DuelResultUiState(
 @HiltViewModel
 class DuelResultViewModel @Inject constructor(
     private val duelRepository: DuelRepository,
+    private val sessionManager: SessionManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -54,16 +57,22 @@ class DuelResultViewModel @Inject constructor(
 
     private fun loadDuelResult() {
         viewModelScope.launch {
+            val currentUserId = (sessionManager.sessionState.value as? SessionState.Authenticated)?.user?.id
+
             duelRepository.getDuel(duelId)
                 .onSuccess { duel ->
+                    val isPlayer1 = currentUserId == null || currentUserId == duel.player1.id
+                    val pScore = if (isPlayer1) duel.player1Score else duel.player2Score
+                    val oScore = if (isPlayer1) duel.player2Score else duel.player1Score
+
                     _uiState.value = _uiState.value.copy(
-                        playerScore = duel.player1Score,
-                        opponentScore = duel.player2Score,
+                        playerScore = pScore,
+                        opponentScore = oScore,
                         totalQuestions = duel.totalQuestions,
                         quizId = duel.quizId,
                         result = when {
-                            duel.player1Score > duel.player2Score -> "win"
-                            duel.player1Score < duel.player2Score -> "lose"
+                            pScore > oScore -> "win"
+                            pScore < oScore -> "lose"
                             else -> "draw"
                         },
                         isLoading = false
@@ -76,8 +85,12 @@ class DuelResultViewModel @Inject constructor(
             // Load replay data for per-question breakdown
             duelRepository.getDuelReplay(duelId)
                 .onSuccess { replay ->
-                    val breakdowns = replay.player1Answers.mapIndexed { i, playerAnswer ->
-                        val opponentAnswer = replay.player2Answers.getOrNull(i)
+                    val isPlayer1 = currentUserId == null || currentUserId == replay.duel.player1.id
+                    val myAnswers = if (isPlayer1) replay.player1Answers else replay.player2Answers
+                    val theirAnswers = if (isPlayer1) replay.player2Answers else replay.player1Answers
+
+                    val breakdowns = myAnswers.mapIndexed { i, playerAnswer ->
+                        val opponentAnswer = theirAnswers.getOrNull(i)
                         QuestionBreakdown(
                             index = i,
                             playerCorrect = playerAnswer.isCorrect,

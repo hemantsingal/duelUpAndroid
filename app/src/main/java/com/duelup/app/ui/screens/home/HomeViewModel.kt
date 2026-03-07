@@ -2,6 +2,7 @@ package com.duelup.app.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.duelup.app.data.local.SearchHistoryManager
 import com.duelup.app.data.local.SessionState
 import com.duelup.app.data.repository.AuthRepository
 import com.duelup.app.data.repository.QuizRepository
@@ -17,21 +18,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
     val user: User? = null,
+    val isLoggedIn: Boolean = false,
     val featuredQuizzes: List<Quiz> = emptyList(),
     val categories: List<Category> = emptyList(),
     val popularQuizzes: List<Quiz> = emptyList(),
+    val randomQuizzes: List<Quiz> = emptyList(),
     val searchQuery: String = "",
     val searchResults: List<Quiz> = emptyList(),
     val isSearching: Boolean = false,
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val recentSearches: List<String> = emptyList()
 ) {
     val isSearchActive: Boolean get() = searchQuery.isNotBlank()
 }
@@ -39,7 +42,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val quizRepository: QuizRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val searchHistoryManager: SearchHistoryManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -48,17 +52,30 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
 
     init {
+        initializeAuth()
         observeSession()
         loadHomeData()
         observeSearch()
+        observeRecentSearches()
+    }
+
+    private fun initializeAuth() {
+        viewModelScope.launch {
+            try {
+                authRepository.initialize()
+            } catch (_: Exception) {
+                // Auth init failed silently - user can log in from drawer
+            }
+        }
     }
 
     private fun observeSession() {
         viewModelScope.launch {
             authRepository.sessionState.collect { state ->
-                if (state is SessionState.Authenticated) {
-                    _uiState.value = _uiState.value.copy(user = state.user)
-                }
+                _uiState.value = _uiState.value.copy(
+                    user = if (state is SessionState.Authenticated) state.user else null,
+                    isLoggedIn = state is SessionState.Authenticated
+                )
             }
         }
     }
@@ -75,10 +92,17 @@ class HomeViewModel @Inject constructor(
             val categories = categoriesDeferred.await()
             val popular = popularDeferred.await()
 
+            // Pick 5 random quizzes from popular + featured combined
+            val allQuizzes = (popular.getOrDefault(emptyList()) + featured.getOrDefault(emptyList()))
+                .distinctBy { it.id }
+                .shuffled()
+                .take(5)
+
             _uiState.value = _uiState.value.copy(
                 featuredQuizzes = featured.getOrDefault(emptyList()),
                 categories = categories.getOrDefault(emptyList()),
                 popularQuizzes = popular.getOrDefault(emptyList()),
+                randomQuizzes = allQuizzes,
                 isLoading = false,
                 isRefreshing = false,
                 error = if (featured.isFailure && categories.isFailure && popular.isFailure) {
@@ -102,7 +126,10 @@ class HomeViewModel @Inject constructor(
     private fun observeSearch() {
         viewModelScope.launch {
             _searchQuery
-                .debounce(Constants.SEARCH_DEBOUNCE_MS)
+                .debounce { query ->
+                    if (query.length <= 2) Constants.SEARCH_DEBOUNCE_SHORT_MS
+                    else Constants.SEARCH_DEBOUNCE_LONG_MS
+                }
                 .distinctUntilChanged()
                 .collect { query ->
                     if (query.isBlank()) {
@@ -112,10 +139,10 @@ class HomeViewModel @Inject constructor(
                         )
                     } else {
                         _uiState.value = _uiState.value.copy(isSearching = true)
-                        quizRepository.getQuizzes(search = query)
-                            .onSuccess { response ->
+                        quizRepository.searchQuizzes(query = query)
+                            .onSuccess { quizzes ->
                                 _uiState.value = _uiState.value.copy(
-                                    searchResults = response.quizzes,
+                                    searchResults = quizzes,
                                     isSearching = false
                                 )
                             }
@@ -124,6 +151,32 @@ class HomeViewModel @Inject constructor(
                             }
                     }
                 }
+        }
+    }
+
+    private fun observeRecentSearches() {
+        viewModelScope.launch {
+            searchHistoryManager.recentSearches.collect { searches ->
+                _uiState.value = _uiState.value.copy(recentSearches = searches)
+            }
+        }
+    }
+
+    fun onSearchSubmitted(query: String) {
+        viewModelScope.launch {
+            searchHistoryManager.addSearch(query)
+        }
+    }
+
+    fun removeRecentSearch(query: String) {
+        viewModelScope.launch {
+            searchHistoryManager.removeSearch(query)
+        }
+    }
+
+    fun clearRecentSearches() {
+        viewModelScope.launch {
+            searchHistoryManager.clearAll()
         }
     }
 
