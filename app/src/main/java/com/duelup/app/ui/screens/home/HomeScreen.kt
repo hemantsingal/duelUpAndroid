@@ -39,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +64,22 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val searchPlaceholder = remember {
+        listOf(
+            "Quiz me on...",
+            "Try me on...",
+            "What do you know about...",
+            "Test your brain on...",
+            "Pick a topic...",
+            "Find a quiz...",
+            "I know everything about...",
+            "Dare to duel on...",
+            "Bring it on...",
+            "Search any topic...",
+            "Challenge yourself on...",
+            "Think you know...",
+        ).random()
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -121,7 +138,7 @@ fun HomeScreen(
                     OutlinedTextField(
                         value = uiState.searchQuery,
                         onValueChange = viewModel::onSearchQueryChanged,
-                        placeholder = { Text("I want to play...") },
+                        placeholder = { Text(searchPlaceholder) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Rounded.Search,

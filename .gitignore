@@ -9,3 +9,8 @@
 .cxx
 local.properties
 .claude/
+*.log
+app_pid_log.txt
+fresh_logs.txt
+log.txt
+ui.xml

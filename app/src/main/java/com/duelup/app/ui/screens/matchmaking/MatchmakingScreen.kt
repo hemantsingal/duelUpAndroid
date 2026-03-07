@@ -84,10 +84,9 @@ fun MatchmakingScreen(
     LaunchedEffect(state) {
         val s = state
         if (s is MatchmakingState.Found && s.countdown <= 0) {
-            // TODO: re-enable after fixing duel flow
-            // navController.navigate(Screen.Duel.createRoute(s.duelId)) {
-            //     popUpTo(Screen.Matchmaking.route) { inclusive = true }
-            // }
+            navController.navigate(Screen.Duel.createRoute(s.duelId)) {
+                popUpTo(Screen.Matchmaking.route) { inclusive = true }
+            }
         }
         if (s is MatchmakingState.Cancelled) {
             navController.popBackStack()

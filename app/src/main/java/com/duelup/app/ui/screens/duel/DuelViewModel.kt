@@ -107,16 +107,19 @@ class DuelViewModel @Inject constructor(
             socketManager.onNextQuestion().collect { payload ->
                 timeLimitSeconds = payload.question.timeLimit
                 initDots(_uiState.value.totalQuestions)
+                // Keep answers locked briefly to prevent accidental taps from previous question
                 _uiState.value = _uiState.value.copy(
                     phase = DuelPhase.PLAYING,
                     currentQuestion = payload.question,
                     selectedAnswer = null,
-                    isAnswerLocked = false,
+                    isAnswerLocked = true,
                     opponentAnswered = false,
                     questionResult = null,
                     correctAnswer = null,
                     pointsEarned = 0
                 )
+                delay(400)
+                _uiState.value = _uiState.value.copy(isAnswerLocked = false)
                 startTimer(timeLimitSeconds)
             }
         }
