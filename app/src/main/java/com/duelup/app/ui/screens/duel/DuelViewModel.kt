@@ -8,7 +8,6 @@ import com.duelup.app.domain.model.DEFAULT_TIME_PER_QUESTION
 import com.duelup.app.data.local.SessionState
 import com.duelup.app.data.remote.socket.DuelEndPayload
 import com.duelup.app.data.remote.socket.QuestionPayload
-import com.duelup.app.data.remote.socket.QuestionResultPayload
 import com.duelup.app.data.remote.socket.SocketManager
 import com.duelup.app.data.repository.DuelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,7 +52,6 @@ data class DuelUiState(
     val timerProgress: Float = 1f,
     val selectedAnswer: Int? = null,
     val isAnswerLocked: Boolean = false,
-    val questionResult: QuestionResultPayload? = null,
     val correctAnswer: Int? = null,
     val pointsEarned: Int = 0,
     val opponentAnswered: Boolean = false,
@@ -76,6 +74,13 @@ class DuelViewModel @Inject constructor(
 
     private var timerJob: Job? = null
     private var timeLimitSeconds = DEFAULT_TIME_PER_QUESTION
+    private var allQuestions: List<QuestionPayload> = emptyList()
+    private var currentQuestionIndex: Int = 0
+
+    companion object {
+        private const val REVEAL_DURATION_MS = 2000L
+        private const val TRANSITION_DELAY_MS = 400L
+    }
 
     init {
         loadPlayerNames()
@@ -107,19 +112,22 @@ class DuelViewModel @Inject constructor(
     }
 
     private fun listenToEvents() {
-        // Duel start - first question
+        // Duel start - receive ALL questions at once
         viewModelScope.launch {
             socketManager.onDuelStart().collect { payload ->
-                Log.d("DuelVM", "duelStart: Q${payload.question.index} timeLimit=${payload.question.timeLimit} text=${payload.question.text.take(40)}")
-                timeLimitSeconds = payload.question.timeLimit
-                initDots(_uiState.value.totalQuestions)
+                Log.d("DuelVM", "duelStart: ${payload.questions.size} questions received")
+                allQuestions = payload.questions
+                currentQuestionIndex = 0
+                val firstQuestion = allQuestions.first()
+                timeLimitSeconds = firstQuestion.timeLimit
+                initDots(allQuestions.size)
                 _uiState.value = _uiState.value.copy(
                     phase = DuelPhase.PLAYING,
-                    currentQuestion = payload.question,
+                    currentQuestion = firstQuestion,
+                    totalQuestions = allQuestions.size,
                     selectedAnswer = null,
                     isAnswerLocked = false,
                     opponentAnswered = false,
-                    questionResult = null,
                     correctAnswer = null,
                     pointsEarned = 0
                 )
@@ -127,26 +135,30 @@ class DuelViewModel @Inject constructor(
             }
         }
 
-        // Next question
+        // Answer result - instant feedback after player answers
         viewModelScope.launch {
-            socketManager.onNextQuestion().collect { payload ->
-                Log.d("DuelVM", "nextQuestion: Q${payload.question.index} timeLimit=${payload.question.timeLimit} text=${payload.question.text.take(40)}")
-                timeLimitSeconds = payload.question.timeLimit
-                initDots(_uiState.value.totalQuestions)
-                // Keep answers locked briefly to prevent accidental taps from previous question
+            socketManager.onAnswerResult().collect { result ->
+                Log.d("DuelVM", "answerResult: Q${result.questionIndex} correct=${result.isCorrect} points=${result.pointsEarned} total=${result.totalScore}")
+                timerJob?.cancel()
+
+                val updatedDots = _uiState.value.questionDots.toMutableList()
+                if (result.questionIndex in updatedDots.indices) {
+                    updatedDots[result.questionIndex] = updatedDots[result.questionIndex].copy(
+                        playerCorrect = result.isCorrect,
+                        playerPoints = result.pointsEarned
+                    )
+                }
+
                 _uiState.value = _uiState.value.copy(
-                    phase = DuelPhase.PLAYING,
-                    currentQuestion = payload.question,
-                    selectedAnswer = null,
-                    isAnswerLocked = true,
-                    opponentAnswered = false,
-                    questionResult = null,
-                    correctAnswer = null,
-                    pointsEarned = 0
+                    phase = DuelPhase.REVEALING,
+                    correctAnswer = result.correctOption,
+                    pointsEarned = result.pointsEarned,
+                    playerScore = result.totalScore,
+                    questionDots = updatedDots
                 )
-                delay(400)
-                _uiState.value = _uiState.value.copy(isAnswerLocked = false)
-                startTimer(timeLimitSeconds)
+
+                delay(REVEAL_DURATION_MS)
+                advanceToNextQuestion()
             }
         }
 
@@ -162,22 +174,21 @@ class DuelViewModel @Inject constructor(
                 }
                 _uiState.value = _uiState.value.copy(
                     opponentAnswered = payload.hasAnswered,
+                    opponentScore = payload.totalScore,
                     questionDots = updatedDots
                 )
             }
         }
 
-        // Question result
+        // Question result - reconciliation after BOTH players answer
         viewModelScope.launch {
             socketManager.onQuestionResult().collect { result ->
-                Log.d("DuelVM", "questionResult: Q${result.questionIndex} playerAnswer=${result.player.answer} correct=${result.player.isCorrect} opAnswer=${result.opponent.answer} opCorrect=${result.opponent.isCorrect}")
-                timerJob?.cancel()
+                Log.d("DuelVM", "questionResult: Q${result.questionIndex} opCorrect=${result.opponent.isCorrect}")
 
-                // Update the dot for this question
+                // Update dots with authoritative data from both players
                 val updatedDots = _uiState.value.questionDots.toMutableList()
                 val qIndex = result.questionIndex
                 if (qIndex in updatedDots.indices) {
-                    // Use server data (answer >= 0) instead of local UI state to avoid stale selectedAnswer
                     val didPlayerAnswer = result.player.answer >= 0
                     val didOpponentAnswer = result.opponent.answer >= 0
                     updatedDots[qIndex] = updatedDots[qIndex].copy(
@@ -190,11 +201,8 @@ class DuelViewModel @Inject constructor(
                     )
                 }
 
+                // Always update scores and dots from authoritative source
                 _uiState.value = _uiState.value.copy(
-                    phase = DuelPhase.REVEALING,
-                    questionResult = result,
-                    correctAnswer = result.correctAnswer,
-                    pointsEarned = result.player.pointsEarned,
                     playerScore = result.player.totalScore,
                     opponentScore = result.opponent.totalScore,
                     questionDots = updatedDots
@@ -214,11 +222,70 @@ class DuelViewModel @Inject constructor(
             }
         }
 
+        // State sync - reconnection recovery
+        viewModelScope.launch {
+            socketManager.onStateSync().collect { sync ->
+                Log.d("DuelVM", "stateSync: duelId=${sync.duelId} currentQ=${sync.currentQuestionIndex}")
+                allQuestions = sync.questions
+                currentQuestionIndex = sync.currentQuestionIndex
+                initDots(allQuestions.size)
+
+                val currentQ = allQuestions.getOrNull(currentQuestionIndex)
+                if (currentQ != null) {
+                    timeLimitSeconds = currentQ.timeLimit
+                    _uiState.value = _uiState.value.copy(
+                        duelId = sync.duelId,
+                        phase = DuelPhase.PLAYING,
+                        currentQuestion = currentQ,
+                        totalQuestions = allQuestions.size,
+                        playerScore = sync.player1Score,
+                        opponentScore = sync.player2Score,
+                        selectedAnswer = null,
+                        isAnswerLocked = false,
+                        opponentAnswered = false,
+                        correctAnswer = null,
+                        pointsEarned = 0
+                    )
+                    startTimer(sync.timeRemaining / 1000)
+                }
+            }
+        }
+
         // Error handling
         viewModelScope.launch {
             socketManager.onError().collect {
                 // Keep playing, log error silently
             }
+        }
+    }
+
+    private fun advanceToNextQuestion() {
+        currentQuestionIndex++
+        if (currentQuestionIndex >= allQuestions.size) {
+            // All questions answered; wait for duel:end from server
+            _uiState.value = _uiState.value.copy(phase = DuelPhase.TRANSITIONING)
+            return
+        }
+
+        val nextQ = allQuestions[currentQuestionIndex]
+        timeLimitSeconds = nextQ.timeLimit
+
+        _uiState.value = _uiState.value.copy(
+            phase = DuelPhase.PLAYING,
+            currentQuestion = nextQ,
+            selectedAnswer = null,
+            isAnswerLocked = true,
+            opponentAnswered = false,
+            correctAnswer = null,
+            pointsEarned = 0
+        )
+
+        viewModelScope.launch {
+            delay(TRANSITION_DELAY_MS)
+            if (_uiState.value.currentQuestion?.index == nextQ.index) {
+                _uiState.value = _uiState.value.copy(isAnswerLocked = false)
+            }
+            startTimer(timeLimitSeconds)
         }
     }
 

@@ -98,7 +98,7 @@ fun DuelScreen(
         when (uiState.phase) {
             DuelPhase.PLAYING -> soundManager.play(SoundEffect.QUESTION_IN)
             DuelPhase.REVEALING -> {
-                val isCorrect = uiState.questionResult?.player?.isCorrect == true
+                val isCorrect = uiState.selectedAnswer != null && uiState.selectedAnswer == uiState.correctAnswer
                 if (isCorrect) {
                     soundManager.play(SoundEffect.CORRECT)
                 } else {
@@ -217,7 +217,7 @@ fun DuelScreen(
                                 correctAnswer = uiState.correctAnswer,
                                 isRevealing = uiState.phase == DuelPhase.REVEALING,
                                 isLocked = uiState.isAnswerLocked,
-                                playerIsCorrect = uiState.questionResult?.player?.isCorrect == true
+                                playerIsCorrect = uiState.selectedAnswer != null && uiState.selectedAnswer == uiState.correctAnswer
                             )
 
                             OptionButton(
@@ -243,7 +243,7 @@ fun DuelScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (uiState.questionResult?.player?.isCorrect == true) {
+                        if (uiState.selectedAnswer != null && uiState.selectedAnswer == uiState.correctAnswer) {
                             val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_correct_answer))
                             LottieAnimation(composition = composition, modifier = Modifier.size(80.dp))
                         } else if (uiState.selectedAnswer != null) {

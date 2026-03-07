@@ -39,7 +39,6 @@ class SoundManager @Inject constructor(
         sounds[SoundEffect.MATCH_FOUND] = soundPool.load(context, R.raw.sfx_match_found, 1)
         sounds[SoundEffect.QUESTION_IN] = soundPool.load(context, R.raw.sfx_question_in, 1)
         sounds[SoundEffect.SCORE_UP] = soundPool.load(context, R.raw.sfx_score_up, 1)
-        sounds[SoundEffect.STREAK] = soundPool.load(context, R.raw.sfx_streak, 1)
         sounds[SoundEffect.COUNTDOWN] = soundPool.load(context, R.raw.sfx_countdown, 1)
         sounds[SoundEffect.TIMER_TICK] = soundPool.load(context, R.raw.sfx_timer_tick, 1)
         sounds[SoundEffect.TIMER_URGENT] = soundPool.load(context, R.raw.sfx_timer_urgent, 1)
@@ -66,7 +65,6 @@ enum class SoundEffect {
     MATCH_FOUND,
     QUESTION_IN,
     SCORE_UP,
-    STREAK,
     COUNTDOWN,
     TIMER_TICK,
     TIMER_URGENT

@@ -124,9 +124,9 @@ class SocketManager @Inject constructor(
             json.decodeFromString(DuelStartPayload.serializer(), it.toString())
         }
 
-    fun onNextQuestion(): Flow<NextQuestionPayload> =
-        onEvent(ServerEvents.NEXT_QUESTION) {
-            json.decodeFromString(NextQuestionPayload.serializer(), it.toString())
+    fun onAnswerResult(): Flow<AnswerResultPayload> =
+        onEvent(ServerEvents.ANSWER_RESULT) {
+            json.decodeFromString(AnswerResultPayload.serializer(), it.toString())
         }
 
     fun onOpponentProgress(): Flow<OpponentProgressPayload> =
@@ -142,6 +142,11 @@ class SocketManager @Inject constructor(
     fun onDuelEnd(): Flow<DuelEndPayload> =
         onEvent(ServerEvents.DUEL_END) {
             json.decodeFromString(DuelEndPayload.serializer(), it.toString())
+        }
+
+    fun onStateSync(): Flow<StateSyncPayload> =
+        onEvent(ServerEvents.DUEL_STATE_SYNC) {
+            json.decodeFromString(StateSyncPayload.serializer(), it.toString())
         }
 
     fun onError(): Flow<ErrorPayload> =

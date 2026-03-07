@@ -20,7 +20,7 @@ object ServerEvents {
     const val MATCHMAKING_FOUND = "matchmaking:found"
     const val MATCHMAKING_LEFT = "matchmaking:left"
     const val DUEL_START = "duel:start"
-    const val NEXT_QUESTION = "duel:next-question"
+    const val ANSWER_RESULT = "duel:answer-result"
     const val OPPONENT_PROGRESS = "duel:opponent-progress"
     const val QUESTION_RESULT = "duel:question-result"
     const val DUEL_END = "duel:end"
@@ -93,6 +93,7 @@ data class QuestionPayload(
     val index: Int,
     val text: String,
     val options: List<String>,
+    val correctAnswer: Int = -1,
     val timeLimit: Int = DEFAULT_TIME_PER_QUESTION,
     val imageUrl: String? = null
 )
@@ -100,14 +101,17 @@ data class QuestionPayload(
 @Serializable
 data class DuelStartPayload(
     val duelId: String,
-    val question: QuestionPayload,
+    val questions: List<QuestionPayload>,
     val startTime: Long
 )
 
 @Serializable
-data class NextQuestionPayload(
-    val question: QuestionPayload,
-    val startTime: Long
+data class AnswerResultPayload(
+    val questionIndex: Int,
+    val isCorrect: Boolean,
+    val pointsEarned: Int,
+    val totalScore: Int,
+    val correctOption: Int
 )
 
 @Serializable
@@ -165,6 +169,17 @@ data class DuelEndPayload(
     val player: DuelEndPlayerInfo,
     val opponent: DuelEndOpponentInfo,
     val rewards: DuelRewards? = null
+)
+
+@Serializable
+data class StateSyncPayload(
+    val duelId: String,
+    val questions: List<QuestionPayload>,
+    val currentQuestionIndex: Int,
+    val startTime: Long,
+    val player1Score: Int,
+    val player2Score: Int,
+    val timeRemaining: Int
 )
 
 @Serializable
