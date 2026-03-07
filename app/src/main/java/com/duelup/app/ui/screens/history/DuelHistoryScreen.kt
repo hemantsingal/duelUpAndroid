@@ -220,7 +220,7 @@ private fun DuelHistoryCard(
                 }
             }
 
-            // Score
+            // Score + rating change
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "${item.playerScore} - ${item.opponentScore}",
@@ -228,6 +228,15 @@ private fun DuelHistoryCard(
                     color = resultColor,
                     fontWeight = FontWeight.Bold
                 )
+                if (item.ratingChange != 0) {
+                    Text(
+                        text = if (item.ratingChange > 0) "+${item.ratingChange}" else "${item.ratingChange}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (item.ratingChange > 0) DuelUpThemeExtras.colors.success
+                        else MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
