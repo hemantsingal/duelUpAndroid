@@ -122,8 +122,16 @@ class DuelViewModel @Inject constructor(
         // Opponent progress
         viewModelScope.launch {
             socketManager.onOpponentProgress().collect { payload ->
+                val updatedDots = _uiState.value.questionDots.toMutableList()
+                if (payload.hasAnswered && payload.questionIndex in updatedDots.indices) {
+                    updatedDots[payload.questionIndex] = updatedDots[payload.questionIndex].copy(
+                        opponentCorrect = payload.correct
+                    )
+                }
                 _uiState.value = _uiState.value.copy(
-                    opponentAnswered = payload.hasAnswered
+                    opponentAnswered = payload.hasAnswered,
+                    opponentScore = payload.totalScore,
+                    questionDots = updatedDots
                 )
             }
         }

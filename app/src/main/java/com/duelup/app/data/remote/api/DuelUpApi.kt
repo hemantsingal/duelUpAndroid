@@ -4,28 +4,27 @@ import com.duelup.app.data.remote.dto.GuestLoginRequest
 import com.duelup.app.data.remote.dto.LinkAccountRequest
 import com.duelup.app.data.remote.dto.RefreshTokenRequest
 import com.duelup.app.data.remote.dto.UpdateProfileRequest
+import com.duelup.app.domain.model.Achievement
 import com.duelup.app.domain.model.AuthResponse
 import com.duelup.app.domain.model.Category
-import com.duelup.app.domain.model.Duel
-import com.duelup.app.domain.model.DuelHistoryResponse
-import com.duelup.app.domain.model.DuelReplay
-import com.duelup.app.domain.model.AchievementsResponse
 import com.duelup.app.domain.model.ChallengesResponse
 import com.duelup.app.domain.model.DirectChallenge
 import com.duelup.app.domain.model.DirectChallengeRequest
-import com.duelup.app.domain.model.Friend
-import com.duelup.app.domain.model.FriendRequest
-import com.duelup.app.domain.model.FriendsResponse
+import com.duelup.app.domain.model.Duel
+import com.duelup.app.domain.model.DuelHistoryResponse
+import com.duelup.app.domain.model.DuelReplay
+import com.duelup.app.domain.model.FriendRequestsResponse
+import com.duelup.app.domain.model.FriendsListResponse
 import com.duelup.app.domain.model.LeaderboardResponse
 import com.duelup.app.domain.model.Quiz
 import com.duelup.app.domain.model.QuizDetail
 import com.duelup.app.domain.model.QuizListResponse
+import com.duelup.app.domain.model.SendFriendRequestBody
 import com.duelup.app.domain.model.UserProfile
 import com.duelup.app.domain.model.UserStats
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -49,7 +48,7 @@ interface DuelUpApi {
     @GET("users/me")
     suspend fun getProfile(): UserProfile
 
-    @PATCH("users/me")
+    @POST("users/me")
     suspend fun updateProfile(@Body body: UpdateProfileRequest): UserProfile
 
     @GET("users/me/stats")
@@ -100,7 +99,7 @@ interface DuelUpApi {
 
     // Achievements
     @GET("users/me/achievements")
-    suspend fun getAchievements(): AchievementsResponse
+    suspend fun getAchievements(): List<Achievement>
 
     // Challenges
     @GET("challenges")
@@ -109,7 +108,7 @@ interface DuelUpApi {
     @POST("challenges/direct")
     suspend fun createDirectChallenge(@Body body: DirectChallengeRequest): DirectChallenge
 
-    @PATCH("challenges/{id}/accept")
+    @POST("challenges/{id}/accept")
     suspend fun acceptChallenge(@Path("id") challengeId: String): DirectChallenge
 
     @DELETE("challenges/{id}/decline")
@@ -117,14 +116,23 @@ interface DuelUpApi {
 
     // Friends
     @GET("friends")
-    suspend fun getFriends(): FriendsResponse
+    suspend fun getFriends(): FriendsListResponse
 
-    @POST("friends/{userId}")
-    suspend fun sendFriendRequest(@Path("userId") userId: String): FriendRequest
+    @GET("friends/requests/received")
+    suspend fun getReceivedFriendRequests(): FriendRequestsResponse
 
-    @PATCH("friends/{userId}/accept")
-    suspend fun acceptFriendRequest(@Path("userId") userId: String): Friend
+    @GET("friends/requests/sent")
+    suspend fun getSentFriendRequests(): FriendRequestsResponse
 
-    @DELETE("friends/{userId}")
-    suspend fun removeFriend(@Path("userId") userId: String)
+    @POST("friends/request")
+    suspend fun sendFriendRequest(@Body body: SendFriendRequestBody): com.duelup.app.domain.model.FriendRequest
+
+    @POST("friends/{friendshipId}/accept")
+    suspend fun acceptFriendRequest(@Path("friendshipId") friendshipId: String)
+
+    @POST("friends/{friendshipId}/decline")
+    suspend fun declineFriendRequest(@Path("friendshipId") friendshipId: String)
+
+    @DELETE("friends/{friendshipId}")
+    suspend fun removeFriend(@Path("friendshipId") friendshipId: String)
 }

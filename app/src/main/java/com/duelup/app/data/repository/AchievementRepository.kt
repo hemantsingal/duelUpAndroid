@@ -1,7 +1,7 @@
 package com.duelup.app.data.repository
 
 import com.duelup.app.data.remote.api.DuelUpApi
-import com.duelup.app.domain.model.AchievementsResponse
+import com.duelup.app.domain.model.Achievement
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -9,7 +9,7 @@ import javax.inject.Singleton
 class AchievementRepository @Inject constructor(
     private val api: DuelUpApi
 ) {
-    suspend fun getAchievements(): Result<AchievementsResponse> {
+    suspend fun getAchievements(): Result<List<Achievement>> {
         return try {
             Result.success(api.getAchievements())
         } catch (e: Exception) {

@@ -69,8 +69,7 @@ data class MatchOpponentInfo(
     val id: String,
     val username: String,
     val avatarUrl: String? = null,
-    val rating: Int,
-    val isAI: Boolean = false
+    val rating: Int
 )
 
 @Serializable
@@ -114,6 +113,8 @@ data class NextQuestionPayload(
 data class OpponentProgressPayload(
     val questionIndex: Int,
     val hasAnswered: Boolean,
+    val correct: Boolean = false,
+    val totalScore: Int = 0,
     val timeRemaining: Int = 0
 )
 

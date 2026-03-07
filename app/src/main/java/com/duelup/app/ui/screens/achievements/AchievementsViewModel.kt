@@ -11,21 +11,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class AchievementTab { ALL, UNLOCKED, LOCKED }
-
 data class AchievementsUiState(
     val achievements: List<Achievement> = emptyList(),
-    val selectedTab: AchievementTab = AchievementTab.ALL,
     val isLoading: Boolean = true,
     val error: String? = null
-) {
-    val filteredAchievements: List<Achievement>
-        get() = when (selectedTab) {
-            AchievementTab.ALL -> achievements
-            AchievementTab.UNLOCKED -> achievements.filter { it.isUnlocked }
-            AchievementTab.LOCKED -> achievements.filter { !it.isUnlocked }
-        }
-}
+)
 
 @HiltViewModel
 class AchievementsViewModel @Inject constructor(
@@ -43,9 +33,9 @@ class AchievementsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             achievementRepository.getAchievements()
-                .onSuccess { response ->
+                .onSuccess { achievements ->
                     _uiState.value = _uiState.value.copy(
-                        achievements = response.achievements,
+                        achievements = achievements,
                         isLoading = false
                     )
                 }
@@ -56,9 +46,5 @@ class AchievementsViewModel @Inject constructor(
                     )
                 }
         }
-    }
-
-    fun selectTab(tab: AchievementTab) {
-        _uiState.value = _uiState.value.copy(selectedTab = tab)
     }
 }

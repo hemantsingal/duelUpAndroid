@@ -3,7 +3,8 @@ package com.duelup.app.data.repository
 import com.duelup.app.data.remote.api.DuelUpApi
 import com.duelup.app.domain.model.Friend
 import com.duelup.app.domain.model.FriendRequest
-import com.duelup.app.domain.model.FriendsResponse
+import com.duelup.app.domain.model.FriendRequestsResponse
+import com.duelup.app.domain.model.FriendsListResponse
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -27,25 +28,15 @@ class FriendRepositoryTest {
     private lateinit var repository: FriendRepository
 
     private val testFriends = listOf(
-        Friend(
-            id = "f1", username = "Alice", rating = 1300, isOnline = true
-        ),
-        Friend(
-            id = "f2", username = "Bob", rating = 1100, isOnline = false
-        )
+        Friend(friendshipId = "fs1", userId = "u1", username = "Alice", rating = 1300),
+        Friend(friendshipId = "fs2", userId = "u2", username = "Bob", rating = 1100)
     )
 
     private val testPendingRequests = listOf(
         FriendRequest(
-            id = "fr1", fromUserId = "u3", fromUsername = "Charlie",
-            toUserId = "me", status = "pending", createdAt = "2024-01-01T00:00:00Z"
+            friendshipId = "fs3", userId = "u3", username = "Charlie",
+            rating = 1200, createdAt = "2024-01-01T00:00:00Z"
         )
-    )
-
-    private val testFriendsResponse = FriendsResponse(
-        friends = testFriends,
-        pendingRequests = testPendingRequests,
-        totalFriends = 2
     )
 
     @Before
@@ -61,14 +52,13 @@ class FriendRepositoryTest {
     }
 
     @Test
-    fun `getFriends success returns friends and requests`() = runTest {
-        coEvery { api.getFriends() } returns testFriendsResponse
+    fun `getFriends success returns friends`() = runTest {
+        coEvery { api.getFriends() } returns FriendsListResponse(testFriends, 2)
 
         val result = repository.getFriends()
 
         assertTrue(result.isSuccess)
         assertEquals(2, result.getOrNull()?.friends?.size)
-        assertEquals(1, result.getOrNull()?.pendingRequests?.size)
     }
 
     @Test
@@ -82,45 +72,65 @@ class FriendRepositoryTest {
     }
 
     @Test
+    fun `getReceivedRequests success returns requests`() = runTest {
+        coEvery { api.getReceivedFriendRequests() } returns
+                FriendRequestsResponse(testPendingRequests, 1)
+
+        val result = repository.getReceivedRequests()
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.requests?.size)
+    }
+
+    @Test
     fun `sendFriendRequest success returns request`() = runTest {
         val request = FriendRequest(
-            id = "fr2", fromUserId = "me", fromUsername = "Me",
-            toUserId = "u4", status = "pending", createdAt = "2024-01-02T00:00:00Z"
+            friendshipId = "fs4", userId = "u4", username = "Dave",
+            rating = 1000, createdAt = "2024-01-02T00:00:00Z"
         )
-        coEvery { api.sendFriendRequest("u4") } returns request
+        coEvery { api.sendFriendRequest(any()) } returns request
 
         val result = repository.sendFriendRequest("u4")
 
         assertTrue(result.isSuccess)
-        assertEquals("u4", result.getOrNull()?.toUserId)
+        assertEquals("Dave", result.getOrNull()?.username)
     }
 
     @Test
-    fun `acceptFriendRequest success returns friend`() = runTest {
-        val friend = Friend(id = "u3", username = "Charlie", rating = 1200)
-        coEvery { api.acceptFriendRequest("u3") } returns friend
+    fun `acceptFriendRequest success`() = runTest {
+        coEvery { api.acceptFriendRequest("fs3") } returns Unit
 
-        val result = repository.acceptFriendRequest("u3")
+        val result = repository.acceptFriendRequest("fs3")
 
         assertTrue(result.isSuccess)
-        assertEquals("Charlie", result.getOrNull()?.username)
+        coVerify { api.acceptFriendRequest("fs3") }
+    }
+
+    @Test
+    fun `declineFriendRequest success`() = runTest {
+        coEvery { api.declineFriendRequest("fs3") } returns Unit
+
+        val result = repository.declineFriendRequest("fs3")
+
+        assertTrue(result.isSuccess)
+        coVerify { api.declineFriendRequest("fs3") }
     }
 
     @Test
     fun `removeFriend success`() = runTest {
-        coEvery { api.removeFriend("f1") } returns Unit
+        coEvery { api.removeFriend("fs1") } returns Unit
 
-        val result = repository.removeFriend("f1")
+        val result = repository.removeFriend("fs1")
 
         assertTrue(result.isSuccess)
-        coVerify { api.removeFriend("f1") }
+        coVerify { api.removeFriend("fs1") }
     }
 
     @Test
     fun `removeFriend failure returns error`() = runTest {
-        coEvery { api.removeFriend("f1") } throws Exception("Not found")
+        coEvery { api.removeFriend("fs1") } throws Exception("Not found")
 
-        val result = repository.removeFriend("f1")
+        val result = repository.removeFriend("fs1")
 
         assertTrue(result.isFailure)
     }

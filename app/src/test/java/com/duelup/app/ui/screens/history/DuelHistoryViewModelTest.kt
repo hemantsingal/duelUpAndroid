@@ -29,7 +29,6 @@ class DuelHistoryViewModelTest {
         quizTitle = "Quiz $id",
         opponentUsername = "Opponent",
         opponentAvatarUrl = null,
-        isAiOpponent = false,
         playerScore = 500,
         opponentScore = 400,
         result = result,

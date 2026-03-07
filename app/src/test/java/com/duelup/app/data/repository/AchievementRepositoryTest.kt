@@ -2,7 +2,6 @@ package com.duelup.app.data.repository
 
 import com.duelup.app.data.remote.api.DuelUpApi
 import com.duelup.app.domain.model.Achievement
-import com.duelup.app.domain.model.AchievementsResponse
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +25,12 @@ class AchievementRepositoryTest {
 
     private val testAchievements = listOf(
         Achievement(
-            id = "a1", name = "First Win", description = "Win your first duel",
-            category = "milestones", pointsAwarded = 50, isUnlocked = true,
-            unlockedAt = "2024-01-01T00:00:00Z"
+            key = "first_win", name = "First Win", description = "Win your first duel",
+            category = "milestones", unlockedAt = "2024-01-01T00:00:00Z"
         ),
         Achievement(
-            id = "a2", name = "Sharp Shooter", description = "Get 10 perfect scores",
-            category = "accuracy", pointsAwarded = 100, isUnlocked = false
+            key = "sharp_shooter", name = "Sharp Shooter", description = "Get 10 perfect scores",
+            category = "accuracy", unlockedAt = "2024-02-01T00:00:00Z"
         )
     )
 
@@ -50,13 +48,13 @@ class AchievementRepositoryTest {
 
     @Test
     fun `getAchievements success returns achievements`() = runTest {
-        coEvery { api.getAchievements() } returns AchievementsResponse(testAchievements)
+        coEvery { api.getAchievements() } returns testAchievements
 
         val result = repository.getAchievements()
 
         assertTrue(result.isSuccess)
-        assertEquals(2, result.getOrNull()?.achievements?.size)
-        assertEquals("First Win", result.getOrNull()?.achievements?.first()?.name)
+        assertEquals(2, result.getOrNull()?.size)
+        assertEquals("First Win", result.getOrNull()?.first()?.name)
     }
 
     @Test

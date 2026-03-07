@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -16,8 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -68,34 +64,14 @@ fun AchievementsScreen(
             )
         )
 
-        // Filter tabs
-        TabRow(
-            selectedTabIndex = uiState.selectedTab.ordinal,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary
-        ) {
-            AchievementTab.entries.forEach { tab ->
-                Tab(
-                    selected = uiState.selectedTab == tab,
-                    onClick = { viewModel.selectTab(tab) },
-                    text = {
-                        Text(
-                            text = tab.name.lowercase()
-                                .replaceFirstChar { it.uppercase() }
-                        )
-                    }
-                )
-            }
-        }
-
         when {
             uiState.isLoading -> FullScreenLoading()
             uiState.error != null -> ErrorScreen(
                 message = uiState.error!!,
                 onRetry = viewModel::loadAchievements
             )
-            uiState.filteredAchievements.isEmpty() -> EmptyStateView(
-                message = "No achievements found"
+            uiState.achievements.isEmpty() -> EmptyStateView(
+                message = "No achievements unlocked yet"
             )
             else -> {
                 LazyVerticalGrid(
@@ -105,7 +81,7 @@ fun AchievementsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(uiState.filteredAchievements) { achievement ->
+                    items(uiState.achievements) { achievement ->
                         AchievementBadge(achievement = achievement)
                     }
                 }

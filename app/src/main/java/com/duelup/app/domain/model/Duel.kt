@@ -7,8 +7,7 @@ data class DuelPlayer(
     val id: String,
     val username: String,
     val avatarUrl: String? = null,
-    val rating: Int,
-    val isAI: Boolean = false
+    val rating: Int
 )
 
 @Serializable

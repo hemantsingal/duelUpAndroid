@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 sealed class MatchmakingState {
@@ -46,14 +45,6 @@ class MatchmakingViewModel @Inject constructor(
 
     private var timerJob: Job? = null
     private var countdownJob: Job? = null
-
-    companion object {
-        private const val AI_MATCH_TIMEOUT_SECONDS = 3
-        private val AI_BOT_NAMES = listOf(
-            "QuizBot", "BrainiacAI", "TriviaBot", "SmartBot",
-            "ChallengBot", "QuizMaster", "NeuroBot", "LogicBot"
-        )
-    }
 
     val currentUser: User?
         get() = (authRepository.sessionState.value as? SessionState.Authenticated)?.user
@@ -89,16 +80,10 @@ class MatchmakingViewModel @Inject constructor(
                     if (current is MatchmakingState.Searching) {
                         _state.value = current.copy(waitTimeSeconds = seconds)
                     }
-
-                    // After 3 seconds with no match, auto-match with AI bot
-                    if (seconds >= AI_MATCH_TIMEOUT_SECONDS && _state.value is MatchmakingState.Searching) {
-                        matchWithAIBot()
-                        return@launch
-                    }
                 }
             }
 
-            // Listen for match found (from real opponent before timeout)
+            // Listen for match found
             if (connected) {
                 launch {
                     socketManager.onMatchmakingFound().collect { payload ->
@@ -121,30 +106,6 @@ class MatchmakingViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    private fun matchWithAIBot() {
-        timerJob?.cancel()
-        val playerRating = currentUser?.rating ?: 1000
-        val botRating = (playerRating - 100..playerRating + 100).random().coerceAtLeast(100)
-        val botName = AI_BOT_NAMES.random()
-        val aiDuelId = "ai-${UUID.randomUUID()}"
-
-        onMatchFound(
-            duelId = aiDuelId,
-            opponent = MatchOpponentInfo(
-                id = "ai-bot",
-                username = botName,
-                rating = botRating,
-                isAI = true
-            ),
-            quiz = MatchQuizInfo(
-                id = quizId,
-                title = "",
-                questionCount = 6,
-                timePerQuestion = 15
-            )
-        )
     }
 
     private fun onMatchFound(duelId: String, opponent: MatchOpponentInfo, quiz: MatchQuizInfo) {

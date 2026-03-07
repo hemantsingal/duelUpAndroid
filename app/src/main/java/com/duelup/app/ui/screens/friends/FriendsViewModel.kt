@@ -17,13 +17,7 @@ data class FriendsUiState(
     val pendingRequests: List<FriendRequest> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
-) {
-    val onlineFriends: List<Friend>
-        get() = friends.filter { it.isOnline }
-
-    val offlineFriends: List<Friend>
-        get() = friends.filter { !it.isOnline }
-}
+)
 
 @HiltViewModel
 class FriendsViewModel @Inject constructor(
@@ -40,11 +34,16 @@ class FriendsViewModel @Inject constructor(
     fun loadFriends() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            friendRepository.getFriends()
-                .onSuccess { response ->
+
+            val friendsResult = friendRepository.getFriends()
+            val requestsResult = friendRepository.getReceivedRequests()
+
+            friendsResult
+                .onSuccess { friendsResponse ->
+                    val requests = requestsResult.getOrNull()?.requests ?: emptyList()
                     _uiState.value = _uiState.value.copy(
-                        friends = response.friends,
-                        pendingRequests = response.pendingRequests,
+                        friends = friendsResponse.friends,
+                        pendingRequests = requests,
                         isLoading = false
                     )
                 }
@@ -57,16 +56,23 @@ class FriendsViewModel @Inject constructor(
         }
     }
 
-    fun acceptRequest(userId: String) {
+    fun acceptRequest(friendshipId: String) {
         viewModelScope.launch {
-            friendRepository.acceptFriendRequest(userId)
+            friendRepository.acceptFriendRequest(friendshipId)
                 .onSuccess { loadFriends() }
         }
     }
 
-    fun removeFriend(userId: String) {
+    fun declineRequest(friendshipId: String) {
         viewModelScope.launch {
-            friendRepository.removeFriend(userId)
+            friendRepository.declineFriendRequest(friendshipId)
+                .onSuccess { loadFriends() }
+        }
+    }
+
+    fun removeFriend(friendshipId: String) {
+        viewModelScope.launch {
+            friendRepository.removeFriend(friendshipId)
                 .onSuccess { loadFriends() }
         }
     }

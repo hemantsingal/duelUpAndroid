@@ -8,10 +8,10 @@ data class DuelHistoryItem(
     val quizTitle: String,
     val opponentUsername: String,
     val opponentAvatarUrl: String? = null,
-    val isAiOpponent: Boolean = false,
     val playerScore: Int,
     val opponentScore: Int,
     val result: String,
+    val ratingChange: Int = 0,
     val completedAt: String = ""
 )
 

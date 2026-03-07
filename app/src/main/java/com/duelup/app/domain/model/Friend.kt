@@ -4,30 +4,39 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Friend(
-    val id: String,
+    val friendshipId: String,
+    val userId: String,
     val username: String,
     val displayName: String? = null,
     val avatarUrl: String? = null,
     val rating: Int = 1000,
-    val isOnline: Boolean = false,
-    val lastSeenAt: String? = null,
-    val friendsSince: String? = null
+    val since: String? = null
 )
 
 @Serializable
 data class FriendRequest(
-    val id: String,
-    val fromUserId: String,
-    val fromUsername: String,
-    val fromAvatar: String? = null,
-    val toUserId: String,
-    val status: String = "pending",
+    val friendshipId: String,
+    val userId: String,
+    val username: String,
+    val avatarUrl: String? = null,
+    val rating: Int = 1000,
     val createdAt: String
 )
 
 @Serializable
-data class FriendsResponse(
+data class FriendsListResponse(
     val friends: List<Friend> = emptyList(),
-    val pendingRequests: List<FriendRequest> = emptyList(),
-    val totalFriends: Int = 0
+    val total: Int = 0
+)
+
+@Serializable
+data class FriendRequestsResponse(
+    val requests: List<FriendRequest> = emptyList(),
+    val total: Int = 0
+)
+
+@Serializable
+data class SendFriendRequestBody(
+    val userId: String? = null,
+    val username: String? = null
 )

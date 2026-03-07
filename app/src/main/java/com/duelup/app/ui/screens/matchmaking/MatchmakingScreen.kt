@@ -127,8 +127,7 @@ fun MatchmakingScreen(
                     is MatchmakingState.Found -> PlayerCard(
                         username = s.opponent.username,
                         rating = s.opponent.rating,
-                        isRevealed = true,
-                        isAI = s.opponent.isAI
+                        isRevealed = true
                     )
                     else -> PlayerCard(
                         username = "???",
@@ -231,8 +230,7 @@ fun MatchmakingScreen(
 private fun PlayerCard(
     username: String,
     rating: Int,
-    isRevealed: Boolean,
-    isAI: Boolean = false
+    isRevealed: Boolean
 ) {
     val pulse = rememberInfiniteTransition(label = "pulse")
     val scale by pulse.animateFloat(
@@ -268,7 +266,7 @@ private fun PlayerCard(
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = if (isAI) "$username (AI)" else username,
+            text = username,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onBackground
         )

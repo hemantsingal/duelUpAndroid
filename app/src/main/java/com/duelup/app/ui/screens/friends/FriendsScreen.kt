@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -95,43 +94,25 @@ fun FriendsScreen(
                         }
                         items(uiState.pendingRequests) { request ->
                             PendingRequestCard(
-                                username = request.fromUsername,
-                                onAccept = { viewModel.acceptRequest(request.fromUserId) },
-                                onDecline = { viewModel.removeFriend(request.fromUserId) }
+                                username = request.username,
+                                onAccept = { viewModel.acceptRequest(request.friendshipId) },
+                                onDecline = { viewModel.declineRequest(request.friendshipId) }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(16.dp)) }
                     }
 
-                    // Online friends
-                    if (uiState.onlineFriends.isNotEmpty()) {
+                    // Friends list
+                    if (uiState.friends.isNotEmpty()) {
                         item {
-                            SectionLabel(text = "Online")
+                            SectionLabel(text = "Friends")
                         }
-                        items(uiState.onlineFriends) { friend ->
+                        items(uiState.friends) { friend ->
                             FriendCard(
                                 friend = friend,
                                 onChallenge = {
                                     navController.navigate(
-                                        Screen.DirectChallenge.createRoute(friend.id)
-                                    )
-                                }
-                            )
-                        }
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
-                    }
-
-                    // All friends
-                    if (uiState.offlineFriends.isNotEmpty()) {
-                        item {
-                            SectionLabel(text = "Offline")
-                        }
-                        items(uiState.offlineFriends) { friend ->
-                            FriendCard(
-                                friend = friend,
-                                onChallenge = {
-                                    navController.navigate(
-                                        Screen.DirectChallenge.createRoute(friend.id)
+                                        Screen.DirectChallenge.createRoute(friend.userId)
                                     )
                                 }
                             )

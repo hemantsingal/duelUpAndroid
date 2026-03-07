@@ -3,7 +3,8 @@ package com.duelup.app.ui.screens.friends
 import com.duelup.app.data.repository.FriendRepository
 import com.duelup.app.domain.model.Friend
 import com.duelup.app.domain.model.FriendRequest
-import com.duelup.app.domain.model.FriendsResponse
+import com.duelup.app.domain.model.FriendRequestsResponse
+import com.duelup.app.domain.model.FriendsListResponse
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -26,23 +27,14 @@ class FriendsViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var repository: FriendRepository
 
-    private val onlineFriend = Friend(
-        id = "f1", username = "Alice", rating = 1300, isOnline = true
-    )
-
-    private val offlineFriend = Friend(
-        id = "f2", username = "Bob", rating = 1100, isOnline = false
+    private val testFriends = listOf(
+        Friend(friendshipId = "fs1", userId = "u1", username = "Alice", rating = 1300),
+        Friend(friendshipId = "fs2", userId = "u2", username = "Bob", rating = 1100)
     )
 
     private val testPendingRequest = FriendRequest(
-        id = "fr1", fromUserId = "u3", fromUsername = "Charlie",
-        toUserId = "me", status = "pending", createdAt = "2024-01-01T00:00:00Z"
-    )
-
-    private val testFriendsResponse = FriendsResponse(
-        friends = listOf(onlineFriend, offlineFriend),
-        pendingRequests = listOf(testPendingRequest),
-        totalFriends = 2
+        friendshipId = "fs3", userId = "u3", username = "Charlie",
+        rating = 1200, createdAt = "2024-01-01T00:00:00Z"
     )
 
     @Before
@@ -56,9 +48,16 @@ class FriendsViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun setupDefaultMocks() {
+        coEvery { repository.getFriends() } returns
+                Result.success(FriendsListResponse(testFriends, 2))
+        coEvery { repository.getReceivedRequests() } returns
+                Result.success(FriendRequestsResponse(listOf(testPendingRequest), 1))
+    }
+
     @Test
-    fun `init loads friends successfully`() = runTest {
-        coEvery { repository.getFriends() } returns Result.success(testFriendsResponse)
+    fun `init loads friends and requests successfully`() = runTest {
+        setupDefaultMocks()
 
         val viewModel = FriendsViewModel(repository)
 
@@ -73,6 +72,8 @@ class FriendsViewModelTest {
     fun `init loads friends failure sets error`() = runTest {
         coEvery { repository.getFriends() } returns
                 Result.failure(Exception("Network error"))
+        coEvery { repository.getReceivedRequests() } returns
+                Result.success(FriendRequestsResponse(emptyList(), 0))
 
         val viewModel = FriendsViewModel(repository)
 
@@ -82,63 +83,50 @@ class FriendsViewModelTest {
     }
 
     @Test
-    fun `onlineFriends filters correctly`() = runTest {
-        coEvery { repository.getFriends() } returns Result.success(testFriendsResponse)
-
-        val viewModel = FriendsViewModel(repository)
-
-        val online = viewModel.uiState.value.onlineFriends
-        assertEquals(1, online.size)
-        assertEquals("Alice", online.first().username)
-    }
-
-    @Test
-    fun `offlineFriends filters correctly`() = runTest {
-        coEvery { repository.getFriends() } returns Result.success(testFriendsResponse)
-
-        val viewModel = FriendsViewModel(repository)
-
-        val offline = viewModel.uiState.value.offlineFriends
-        assertEquals(1, offline.size)
-        assertEquals("Bob", offline.first().username)
-    }
-
-    @Test
     fun `acceptRequest calls repository and reloads`() = runTest {
-        coEvery { repository.getFriends() } returns Result.success(testFriendsResponse)
-        coEvery { repository.acceptFriendRequest("u3") } returns
-                Result.success(Friend(id = "u3", username = "Charlie", rating = 1200))
+        setupDefaultMocks()
+        coEvery { repository.acceptFriendRequest("fs3") } returns Result.success(Unit)
 
         val viewModel = FriendsViewModel(repository)
-        viewModel.acceptRequest("u3")
+        viewModel.acceptRequest("fs3")
 
-        coVerify { repository.acceptFriendRequest("u3") }
-        // getFriends called twice: init + reload after accept
+        coVerify { repository.acceptFriendRequest("fs3") }
+        coVerify(exactly = 2) { repository.getFriends() }
+    }
+
+    @Test
+    fun `declineRequest calls repository and reloads`() = runTest {
+        setupDefaultMocks()
+        coEvery { repository.declineFriendRequest("fs3") } returns Result.success(Unit)
+
+        val viewModel = FriendsViewModel(repository)
+        viewModel.declineRequest("fs3")
+
+        coVerify { repository.declineFriendRequest("fs3") }
         coVerify(exactly = 2) { repository.getFriends() }
     }
 
     @Test
     fun `removeFriend calls repository and reloads`() = runTest {
-        coEvery { repository.getFriends() } returns Result.success(testFriendsResponse)
-        coEvery { repository.removeFriend("f1") } returns Result.success(Unit)
+        setupDefaultMocks()
+        coEvery { repository.removeFriend("fs1") } returns Result.success(Unit)
 
         val viewModel = FriendsViewModel(repository)
-        viewModel.removeFriend("f1")
+        viewModel.removeFriend("fs1")
 
-        coVerify { repository.removeFriend("f1") }
+        coVerify { repository.removeFriend("fs1") }
         coVerify(exactly = 2) { repository.getFriends() }
     }
 
     @Test
     fun `acceptRequest failure does not reload`() = runTest {
-        coEvery { repository.getFriends() } returns Result.success(testFriendsResponse)
-        coEvery { repository.acceptFriendRequest("u3") } returns
+        setupDefaultMocks()
+        coEvery { repository.acceptFriendRequest("fs3") } returns
                 Result.failure(Exception("Failed"))
 
         val viewModel = FriendsViewModel(repository)
-        viewModel.acceptRequest("u3")
+        viewModel.acceptRequest("fs3")
 
-        // getFriends only called once during init, not reloaded on failure
         coVerify(exactly = 1) { repository.getFriends() }
     }
 }
